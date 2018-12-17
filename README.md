@@ -7,6 +7,9 @@ The structure of the repository is as follow:
 
 ## Compilation
 
+After compiling and before run the program it is needed to include the library directory to the LIBRARY_PATH, in Linux this can be done as: 
+
+  ``> export LD_LIBRARY_PATH=/home/username/WindCube/lib:$LD_LIBRARY_PATH``
 
 ## Usage
 
