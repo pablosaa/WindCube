@@ -14,6 +14,8 @@ The structure of the repository is as follow:
 
 ## Contact
 Pablo Saavedra-Garfias.
+
 Geophysical Institute
-University of Bergen
+
+University of Bergen, 
 Norway
