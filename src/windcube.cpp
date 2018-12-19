@@ -8,14 +8,16 @@ std::vector<T> String2Vector(std::string VARIN){
   return(VEC);
 }
 
-template void ReadV2Lidar(std::string, V2LidarRTD &);
+
+template void ReadWindCubeLidar(std::string, V2LidarRTD &);
+template void ReadWindCubeLidar(std::string, V2LidarSTA &);
 
 template<typename V2Lidar>
-void ReadV2Lidar(std::string FileName, V2Lidar &KK){
+void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
 
-  int NHead=-99;
-  int NVAR_ALT;
-  bool REALTIME = false;
+  int NHead = -99;
+  int NVAR_ALT = 0;
+  bool RTDTYPE = false, STATYPE = false;
   std::vector<std::string> list, value;
   std::string garbage;
   std::string header;
@@ -32,13 +34,16 @@ void ReadV2Lidar(std::string FileName, V2Lidar &KK){
     std::getline(in,garbage);
     int idx = garbage.find("=");
     if(idx==-1) continue;
+
+    // Converting the Altitude Profile values into a vector:
+    //if(std::find(garbage.begin(),garbage.end(),"Altitudes (m)")!=garbage.end()){
+    if(garbage.find("Altitudes (m)")!=-1){
+      Hm = String2Vector<float>(garbage.substr(idx+1,garbage.length())); //(value.back());
+      continue;
+    }
     
     list.push_back(garbage.substr(0,idx));
     value.push_back(garbage.substr(idx+1,garbage.length()));
-    std::cout<<j<<","<<idx<<")"<<list.back()<<"--"<<value.back()<<std::endl;
-    // Converting the Profile values into a vector:
-    if(std::find(list.begin(),list.end(),"Altitudes (m)")!=list.end())
-      Hm = String2Vector<float>(value.back());
       
   }
   const size_t Nalt = Hm.size();
@@ -61,30 +66,27 @@ void ReadV2Lidar(std::string FileName, V2Lidar &KK){
   float T, Euler[3];
   char wiper;
   int j=0;
-  int idx = FileName.find(".");
-  std::string auxstr = FileName.substr(idx,FileName.length());
-  if(!strcmp(auxstr.c_str(), ".rtd")) {NVAR_ALT = 8; REALTIME = true; std::cout<<"RTD"<<std::endl;}
-  if(!strcmp(auxstr.c_str(), ".sta")) {NVAR_ALT = 11;std::cout<<"STA"<<std::endl;}
-  if(!strcmp(auxstr.c_str(), ".stdrtd")) {
-    NVAR_ALT = 8;
-    REALTIME = true;
-    std::cout<<"STD RTD"<<std::endl;
-  }
-  if(!strcmp(auxstr.c_str(), ".stdsta")) {
-    NVAR_ALT = 11;
-    std::cout<<"STD STA"<<std::endl;
-  }
+
+  RTDTYPE = std::is_same<V2Lidar,V2LidarRTD>::value;
+  STATYPE = std::is_same<V2Lidar,V2LidarSTA>::value;
+
+  if(RTDTYPE) NVAR_ALT = 8;
+  if(STATYPE) NVAR_ALT = 11;
   
   // Starting to read Time- and Altitude-dependent variables:
   while(!in.eof()){
     std::getline(in,garbage);
     std::stringstream ss(garbage);
     // Casting stream into auxiliary variables:
-    if(REALTIME)
+    if(RTDTYPE)
       ss>>date>>hour>>pos>>T>>wiper>>Euler[0]>>Euler[1]>>Euler[2];
-    else
+    else if(STATYPE)
       ss>>date>>hour>>T>>Euler[0]>>Euler[1]>>Euler[2]>>wiper>>pos;
-
+    else{
+      std::cout<<"ERROR: unknow LIDAR variable type passed to Template!";
+      KK = {};
+      return;
+    }
     // Assigning auxiliary variables into vectors:
     Datum.push_back(date);
     Uhrzeit.push_back(hour);
@@ -107,33 +109,47 @@ void ReadV2Lidar(std::string FileName, V2Lidar &KK){
     
   
   }  // end loop over Time stamps (in File)
-  //if(REALTIME)
-  KK = {Nalt,Datum,Uhrzeit,Position,Temperature,Alpha,Beta,Gamma,Hm,WIND_DATA};
-  //else
-    //KK = {Datum,Uhrzeit,Temperature,Alpha,Beta,Gamma,Hm,WIND_DATA};
-  //return(KK);
+ 
+  if(RTDTYPE)
+    KK = {list,value,Datum,Uhrzeit,Position,Temperature,Alpha,Beta,Gamma,Hm,WIND_DATA};
+  if(STATYPE)
+    KK = {list,value,Datum,Uhrzeit,Temperature,Alpha,Beta,Gamma,Position,Hm,WIND_DATA};
+ 
 }
 // ************* END OF READING SUBROUTINE *****************************
 
 
 // Simple subroutine to display on screen part of the data:
-void PrintV2Lidar(std::string FileName,V2LidarRTD &KK){
-  size_t ND = KK.Nalt;
+template void PrintV2Lidar(std::string, V2LidarSTA &);
+template void PrintV2Lidar(std::string, V2LidarRTD &);
+
+template<typename V2Lidar>
+void PrintV2Lidar(std::string FileName,V2Lidar &KK){
+  size_t ND = KK.Height.size();
   std::vector<std::string> Datum = KK.Datum;
   std::vector<std::array<std::vector<float>, N_ALTITUDE>> WIND_DATA = KK.WIND_DATA;
   std::cout<<FileName<<std::endl;
+  for(int j=0; j<KK.HeaderItem.size(); ++j)
+    std::cout<<j<<")"<<KK.HeaderItem.at(j)<<"--"<<KK.HeaderValue.at(j)<<std::endl;
+  
   std::cout<<ND<<std::endl;
   std::cout<<"Size of all: "<<Datum.size()<<" "<<WIND_DATA.size()<<std::endl;
+  
   for(int k=0;k<6;++k){
-    std::cout<<Datum.at(k)<<"--"<<KK.Uhrzeit.at(k)<<"--"<<KK.Position.at(k)<<" T:"<<KK.Temperature.at(k)<<std::endl;
+    std::cout<<Datum.at(k)<<"--"<<KK.Uhrzeit.at(k)<<"--";
+    if(std::is_same<V2Lidar,V2LidarRTD>::value)
+      std::cout<<" T_rtd:"<<KK.Temperature.at(k)<<std::endl;
+    if(std::is_same<V2Lidar,V2LidarSTA>::value)
+      std::cout<<" T_sta:"<<KK.Temperature.at(k)<<std::endl;
     for(int i=0;i<4;++i) std::cout<<WIND_DATA[k][0][i]<<" ";
     std::cout<<std::endl;
   }
-  KK.Datum.push_back("susanita");
+
   std::cout<<"H size:"<<KK.Height.size()<<std::endl;
   std::copy(KK.Height.begin(),KK.Height.end(),std::ostream_iterator<float>(std::cout,", "));
   std::cout<<std::endl;
 }
+
 
 //
 
