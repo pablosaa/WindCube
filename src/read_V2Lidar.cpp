@@ -18,6 +18,10 @@ main(int argc, char *argv[]){
   V2LidarSTA STA;
   V2LidarRTD RTD;
 
+  // trying extension support:
+  unsigned int TT = GetExtensionItem(fname);
+  std::cout<<"Extension detected: "<<TT<<std::endl;
+  
   // Figuring out which kind of file is the input:
   int idx = fname.find(".");
   std::string auxstr = fname.substr(idx,fname.length());
@@ -26,7 +30,7 @@ main(int argc, char *argv[]){
     //typename std::conditional<true, V2LidarSTA, V2LidarRTD>::type KK;
     ReadWindCubeLidar<V2LidarSTA>(fname, STA);
     PrintV2Lidar<V2LidarSTA>(fname, STA);
-    std::cout<<"STA Mudou?"<<STA.Datum.back()<<std::endl;
+    std::cout<<"STA Mudou?"<<STA.WIND_DATA.size()<<std::endl;
   }
 
   if(!strcmp(auxstr.c_str(), ".rtd")){
@@ -34,7 +38,11 @@ main(int argc, char *argv[]){
     ReadWindCubeLidar<V2LidarRTD>(fname, RTD);
     std::cout<<"RTD"<<std::endl;
     PrintV2Lidar<V2LidarRTD>(fname,RTD);
-    std::cout<<"RTD Mudou?"<<RTD.Datum.back()<<std::endl;
+    double Datum[(int) RTD.Datum.size()][6];
+
+    ConvertWindCube_Date(RTD.Datum,RTD.Uhrzeit, Datum);
+  
+    std::cout<<"RTD Mudou?"<<RTD.WIND_DATA[0][0].size()<<std::endl;
   }
     
 

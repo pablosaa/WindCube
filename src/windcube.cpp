@@ -150,7 +150,39 @@ void PrintV2Lidar(std::string FileName,V2Lidar &KK){
   std::cout<<std::endl;
 }
 
+// *********************************************************************
+// Subroutine for the extraction of the input file extension,
+// the output is an iten number indicating the type of file to read:
+// Output:
+// 1 <- sta: Statistical Data (processed with compendation altorithm).
+// 2 <- stdsta: Standard statistical Data.
+// 3 <- rtd: Real Time Data (processed with compendation altorithm).
+// 4 <- stdrtd: Standard real time data.
+// 0 <- Indicates the input file name is unknown or not yet supported.
+unsigned int GetExtensionItem(std::string fname){
 
-//
+  unsigned int EXTITEM=0;
+  int idx = fname.find(".");
+  std::string auxstr = fname.substr(idx,fname.length());
+  if(!strcmp(auxstr.c_str(), ".sta")) EXTITEM = 1;
+  else if(!strcmp(auxstr.c_str(), ".stastd")) EXTITEM = 2;
+  else if(!strcmp(auxstr.c_str(), ".rtd")) EXTITEM = 3;
+  else if(!strcmp(auxstr.c_str(), ".rtdstd")) EXTITEM = 4;
+  else std::cout<<"ERROR: Extension not supported!"<<std::endl;
+  return(EXTITEM);
+}
+
+// ************************************************************************
+// Subroutine to convert from Date and Hour from string to array double:
+void ConvertWindCube_Date(std::vector<std::string> &inDate, std::vector<std::string> &inHour,double outDate[][6]){
+  for(int i=0;i<inDate.size(); ++i){
+    outDate[i][0] = atof(inDate[i].substr(0,4).c_str());
+    outDate[i][1] = atof(inDate[i].substr(5,6).c_str());
+    outDate[i][2] = atof(inDate[i].substr(8,9).c_str());
+    outDate[i][3] = atof(inHour[i].substr(0,2).c_str());
+    outDate[i][4] = atof(inHour[i].substr(3,5).c_str());
+    outDate[i][5] = atof(inHour[i].substr(6,8).c_str());
+  }
+}
 
 // End of Library.

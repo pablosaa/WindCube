@@ -54,5 +54,8 @@ void PrintV2Lidar(std::string, V2Lidar &);
 extern template void PrintV2Lidar(std::string, V2LidarSTA &);
 extern template void PrintV2Lidar(std::string, V2LidarRTD &);
 
+unsigned int GetExtensionItem(std::string);
+
+void ConvertWindCube_Date(std::vector<std::string> &, std::vector<std::string> &, double [][6]);
 #endif
 
