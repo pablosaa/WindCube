@@ -57,6 +57,7 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
   std::vector<float> Position;
   std::vector<float> Temperature;
   std::vector<float> Alpha, Beta, Gamma;
+  std::vector<float> Temp, Press, RH, Nwiper;
   //- std::array<std::vector< std::vector<float> >, N_ALTITUDE> WIND_DATA;
   std::vector<std::array<std::vector<float>, N_ALTITUDE>> WIND_DATA;
   // auxiliary variables to read every row:
@@ -64,7 +65,8 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
   char hour[8];
   char pos[3];
   float T, Euler[3];
-  char wiper;
+  char temp[5], press[5], rh[5];
+  int wiper; //char wiper;
   int j=0;
 
   RTDTYPE = std::is_same<V2Lidar,V2LidarRTD>::value;
@@ -81,7 +83,7 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
     if(RTDTYPE)
       ss>>date>>hour>>pos>>T>>wiper>>Euler[0]>>Euler[1]>>Euler[2];
     else if(STATYPE)
-      ss>>date>>hour>>T>>Euler[0]>>Euler[1]>>Euler[2]>>wiper>>pos;
+      ss>>date>>hour>>T>>temp>>press>>rh>>wiper; //>>pos;
     else{
       std::cout<<"ERROR: unknow LIDAR variable type passed to Template!";
       KK = {};
@@ -92,10 +94,18 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
     Uhrzeit.push_back(hour);
     Position.push_back(std::strcmp(pos,"V")?atof(pos):-1);
     Temperature.push_back(T);
-    Alpha.push_back(Euler[0]);  // for STA is External Temperature [C]
-    Beta.push_back(Euler[1]);   // for STA is External Pressure [hPa]
-    Gamma.push_back(Euler[2]);  // for STA is External RH [%]
-
+    if(RTDTYPE){
+      Alpha.push_back(Euler[0]);  // for STA is External Temperature [C]
+      Beta.push_back(Euler[1]);   // for STA is External Pressure [hPa]
+      Gamma.push_back(Euler[2]);  // for STA is External RH [%]
+    }
+    if(STATYPE){
+      Temp.push_back(atof(temp));
+      Press.push_back(atof(press));
+      RH.push_back(atof(rh));
+    }
+    Nwiper.push_back(wiper);    // Number of Wiper for STA and RTD
+    
     // Reading set of eight-columns for every altitude:
     std::array<std::vector<float>, N_ALTITUDE> AltWind;
     std::istream_iterator<float> ii(ss);
@@ -109,11 +119,12 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
     
   
   }  // end loop over Time stamps (in File)
- 
+
+  // This works only if V2LidarRTD and V2LidarSTA have the same number and type members!
   if(RTDTYPE)
     KK = {list,value,Datum,Uhrzeit,Position,Temperature,Alpha,Beta,Gamma,Hm,WIND_DATA};
   if(STATYPE)
-    KK = {list,value,Datum,Uhrzeit,Temperature,Alpha,Beta,Gamma,Position,Hm,WIND_DATA};
+    KK = {list,value,Datum,Uhrzeit,Temperature,Temp,Press,RH,Nwiper,Hm,WIND_DATA};
  
 }
 // ************* END OF READING SUBROUTINE *****************************
@@ -181,7 +192,8 @@ void ConvertWindCube_Date(std::vector<std::string> &inDate, std::vector<std::str
     outDate[i][2] = atof(inDate[i].substr(8,9).c_str());
     outDate[i][3] = atof(inHour[i].substr(0,2).c_str());
     outDate[i][4] = atof(inHour[i].substr(3,5).c_str());
-    outDate[i][5] = atof(inHour[i].substr(6,8).c_str());
+    if(inHour.size()==8)
+      outDate[i][5] = atof(inHour[i].substr(6,8).c_str());
   }
 }
 

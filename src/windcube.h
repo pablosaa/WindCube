@@ -37,9 +37,10 @@ struct V2LidarSTA {
   std::vector<float> ExtTemp;
   std::vector<float> Pressure;
   std::vector<float> RH;
-  std::vector<float> Vbatt;
+  std::vector<float> Nwiper; //Vbatt;
   std::vector<float> Height;
   std::vector<std::array<std::vector<float>, N_ALTITUDE> > WIND_DATA;
+  int Nbutt;
 };
 
 template<typename V2Lidar>

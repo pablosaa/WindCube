@@ -41,7 +41,7 @@ main(int argc, char *argv[]){
     double Datum[(int) RTD.Datum.size()][6];
 
     ConvertWindCube_Date(RTD.Datum,RTD.Uhrzeit, Datum);
-  
+    std::cout<<std::is_object<RTD.RH>::value;
     std::cout<<"RTD Mudou?"<<RTD.WIND_DATA[0][0].size()<<std::endl;
   }
     
