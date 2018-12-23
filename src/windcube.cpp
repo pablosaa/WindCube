@@ -122,9 +122,9 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
 
   // This works only if V2LidarRTD and V2LidarSTA have the same number and type members!
   if(RTDTYPE)
-    KK = {list,value,Datum,Uhrzeit,Position,Temperature,Alpha,Beta,Gamma,Hm,WIND_DATA};
+    KK = {list,value,Datum,Uhrzeit,Hm,WIND_DATA,Position,Temperature,Alpha,Beta,Gamma,Nwiper};
   if(STATYPE)
-    KK = {list,value,Datum,Uhrzeit,Temperature,Temp,Press,RH,Nwiper,Hm,WIND_DATA};
+    KK = {list,value,Datum,Uhrzeit,Hm,WIND_DATA,Temperature,Temp,Press,RH,Nwiper};
  
 }
 // ************* END OF READING SUBROUTINE *****************************
@@ -173,12 +173,13 @@ void PrintV2Lidar(std::string FileName,V2Lidar &KK){
 unsigned int GetExtensionItem(std::string fname){
 
   unsigned int EXTITEM=0;
-  int idx = fname.find(".");
+  int idx = fname.find_last_of(".");
   std::string auxstr = fname.substr(idx,fname.length());
   if(!strcmp(auxstr.c_str(), ".sta")) EXTITEM = 1;
   else if(!strcmp(auxstr.c_str(), ".stastd")) EXTITEM = 2;
   else if(!strcmp(auxstr.c_str(), ".rtd")) EXTITEM = 3;
   else if(!strcmp(auxstr.c_str(), ".rtdstd")) EXTITEM = 4;
+  else if(!strcmp(auxstr.c_str(), ".gyro")) EXTITEM = 5;
   else std::cout<<"ERROR: Extension not supported!"<<std::endl;
   return(EXTITEM);
 }
@@ -194,7 +195,68 @@ void ConvertWindCube_Date(std::vector<std::string> &inDate, std::vector<std::str
     outDate[i][4] = atof(inHour[i].substr(3,5).c_str());
     if(inHour.size()==8)
       outDate[i][5] = atof(inHour[i].substr(6,8).c_str());
+    if(inHour.size()>8)
+      outDate[i][5] = atof(inHour[i].substr(6,10).c_str());
   }
 }
 
+
+void ReadWindCubeGyro(std::string FileName, V2Gyro &KK){
+
+  std::string garbage;
+  // auxiliary variables to read every row:
+  char date[10];
+  char hour[12];
+  //std::vector<float> tmp;
+  int Treset;
+  float Pitch, Roll, Yaw;
+  
+  // Open File to read V2 Lidar GYRO data files:
+  std::fstream in;
+  in.open(FileName.c_str(),std::ios::in);
+  
+  std::getline(in,garbage);   // getting out Profile Headers
+
+  while(!in.eof()){
+    std::getline(in,garbage);
+    std::stringstream ss(garbage);
+    // Casting stream into auxiliary variables:
+    ss>>date>>hour>>Treset>>Pitch>>Roll>>Yaw;
+
+    // Assigning auxiliary variables into vectors:
+    KK.Datum.push_back(date);
+    KK.Uhrzeit.push_back(hour);
+    KK.Treset.push_back(Treset);
+    KK.Pitch.push_back(Pitch);
+    KK.Roll.push_back(Roll);
+    KK.Yaw.push_back(Yaw);
+    
+    std::istream_iterator<float> ii(ss);
+    KK.GPS_heading.push_back(*ii++);
+    int i;
+    std::array<float,3> tmp;
+    for(i=0;i<3;++i) tmp.at(i) = (*ii++);
+    KK.SBG_LLA.push_back(tmp);
+
+    for(int i=0;i<3;++i) tmp.at(i) = (*ii++);
+    KK.SBG_Vxyz.push_back(tmp);
+    
+    KK.Temperature.push_back(*ii++);
+    KK.Status.push_back(*ii++);
+
+    std::array<float,5> tmp5;
+    for(int i=0;i<5;++i) tmp5.at(i) = (*ii++);
+    KK.GPS_Accu.push_back(tmp5);
+    
+    KK.NSat.push_back(*ii++);
+
+    for(int i=0;i<3;++i) tmp.at(i) = (*ii++);
+    KK.SBG_Accu.push_back(tmp);
+
+    std::array<float,7> tmp7;
+    for(int i=0;i<7;++i) tmp7.at(i) = (*ii++);
+    KK.GPS_Time.push_back(tmp7);
+    
+  }  // end of while !EOF
+}
 // End of Library.
