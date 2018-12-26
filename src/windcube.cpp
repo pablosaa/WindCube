@@ -1,5 +1,20 @@
+// *****************************************************************************
+//  LIBRARY TO READ DATA FILE FROM LEO-SPHERE LIDARS
+// THE SUPPORTED LIDAR MODELS ARE: V1, V2, ...
+// 
+// 
+// (c) 2018, Pablo Saavedra G.
+// pablo.saa@uib.no 
+// University of Bergen, Norway
+// SEE LICENCE.TXT
+// *****************************************************************************
+
 #include "windcube.h"
 
+
+// *****************************************************************************
+// Template Function to convert a sequence of numbers inside a string into a
+// vector any type
 template<typename T>
 std::vector<T> String2Vector(std::string VARIN){
   std::vector<T> VEC;
@@ -7,8 +22,10 @@ std::vector<T> String2Vector(std::string VARIN){
   std::copy(std::istream_iterator<T>(ss),std::istream_iterator<T>(),std::back_inserter(VEC));
   return(VEC);
 }
+// ============= End of Template Function String2Vector ========================
 
-
+// *****************************************************************************
+// Template SUBROUTINE to read V2 Lidar File types: .sta, .rtd
 template void ReadWindCubeLidar(std::string, V2LidarRTD &);
 template void ReadWindCubeLidar(std::string, V2LidarSTA &);
 
@@ -127,39 +144,9 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
     KK = {list,value,Datum,Uhrzeit,Hm,WIND_DATA,Temperature,Temp,Press,RH,Nwiper};
  
 }
-// ************* END OF READING SUBROUTINE *****************************
+// ================ END OF V2 LIDAR READING SUBROUTINE ===============================
 
 
-// Simple subroutine to display on screen part of the data:
-template void PrintV2Lidar(std::string, V2LidarSTA &);
-template void PrintV2Lidar(std::string, V2LidarRTD &);
-
-template<typename V2Lidar>
-void PrintV2Lidar(std::string FileName,V2Lidar &KK){
-  size_t ND = KK.Height.size();
-  std::vector<std::string> Datum = KK.Datum;
-  std::vector<std::array<std::vector<float>, N_ALTITUDE>> WIND_DATA = KK.WIND_DATA;
-  std::cout<<FileName<<std::endl;
-  for(int j=0; j<KK.HeaderItem.size(); ++j)
-    std::cout<<j<<")"<<KK.HeaderItem.at(j)<<"--"<<KK.HeaderValue.at(j)<<std::endl;
-  
-  std::cout<<ND<<std::endl;
-  std::cout<<"Size of all: "<<Datum.size()<<" "<<WIND_DATA.size()<<std::endl;
-  
-  for(int k=0;k<6;++k){
-    std::cout<<Datum.at(k)<<"--"<<KK.Uhrzeit.at(k)<<"--";
-    if(std::is_same<V2Lidar,V2LidarRTD>::value)
-      std::cout<<" T_rtd:"<<KK.Temperature.at(k)<<std::endl;
-    if(std::is_same<V2Lidar,V2LidarSTA>::value)
-      std::cout<<" T_sta:"<<KK.Temperature.at(k)<<std::endl;
-    for(int i=0;i<4;++i) std::cout<<WIND_DATA[k][0][i]<<" ";
-    std::cout<<std::endl;
-  }
-
-  std::cout<<"H size:"<<KK.Height.size()<<std::endl;
-  std::copy(KK.Height.begin(),KK.Height.end(),std::ostream_iterator<float>(std::cout,", "));
-  std::cout<<std::endl;
-}
 
 // *********************************************************************
 // Subroutine for the extraction of the input file extension,
@@ -184,18 +171,20 @@ unsigned int GetExtensionItem(std::string fname){
   return(EXTITEM);
 }
 
+
 // ************************************************************************
 // Subroutine to convert from Date and Hour from string to array double:
 void ConvertWindCube_Date(std::vector<std::string> &inDate, std::vector<std::string> &inHour,double outDate[][6]){
+
   for(int i=0;i<inDate.size(); ++i){
     outDate[i][0] = atof(inDate[i].substr(0,4).c_str());
-    outDate[i][1] = atof(inDate[i].substr(5,6).c_str());
-    outDate[i][2] = atof(inDate[i].substr(8,9).c_str());
+    outDate[i][1] = atof(inDate[i].substr(5,2).c_str());
+    outDate[i][2] = atof(inDate[i].substr(8,2).c_str());
     outDate[i][3] = atof(inHour[i].substr(0,2).c_str());
-    outDate[i][4] = atof(inHour[i].substr(3,5).c_str());
-    if(inHour.size()==8)
-      outDate[i][5] = atof(inHour[i].substr(6,8).c_str());
-    if(inHour.size()>8)
+    outDate[i][4] = atof(inHour[i].substr(3,2).c_str());
+    if(inHour[i].size()==8)   // case of .rtd files:
+      outDate[i][5] = atof(inHour[i].substr(6,2).c_str());
+    if(inHour[i].size()>8)    // caase of .gyro files:
       outDate[i][5] = atof(inHour[i].substr(6,10).c_str());
   }
 }
@@ -268,7 +257,7 @@ void ReadWindCubeGyro(std::string FileName, V2Gyro &KK){
 
 
 
-// ***************************************************************
+// *******************************************************************************
 // SUBROUTINE to show the GNU Public Lincense notice:
 //
 void ShowGNUPL(){
@@ -277,6 +266,39 @@ void ShowGNUPL(){
   std::cout<<"This is free software, and you are welcome to redistribute it"<<std::endl;
   std::cout<<"under certain conditions; see GNUPLv3 `LICENCE' or <http://www.gnu.org/licenses/> for details.\n"<<std::endl;
   return;
+}
+// ============= End of GNU Showing Licence =====================================
+
+// ******************************************************************************
+// Simple subroutine to display on screen part of the data:
+template void PrintV2Lidar(std::string, V2LidarSTA &);
+template void PrintV2Lidar(std::string, V2LidarRTD &);
+
+template<typename V2Lidar>
+void PrintV2Lidar(std::string FileName,V2Lidar &KK){
+  size_t ND = KK.Height.size();
+  std::vector<std::string> Datum = KK.Datum;
+  std::vector<std::array<std::vector<float>, N_ALTITUDE>> WIND_DATA = KK.WIND_DATA;
+  std::cout<<FileName<<std::endl;
+  for(int j=0; j<KK.HeaderItem.size(); ++j)
+    std::cout<<j<<")"<<KK.HeaderItem.at(j)<<"--"<<KK.HeaderValue.at(j)<<std::endl;
+  
+  std::cout<<ND<<std::endl;
+  std::cout<<"Size of all: "<<Datum.size()<<" "<<WIND_DATA.size()<<std::endl;
+  
+  for(int k=0;k<6;++k){
+    std::cout<<Datum.at(k)<<"--"<<KK.Uhrzeit.at(k)<<"--";
+    if(std::is_same<V2Lidar,V2LidarRTD>::value)
+      std::cout<<" T_rtd:"<<KK.Temperature.at(k)<<std::endl;
+    if(std::is_same<V2Lidar,V2LidarSTA>::value)
+      std::cout<<" T_sta:"<<KK.Temperature.at(k)<<std::endl;
+    for(int i=0;i<4;++i) std::cout<<WIND_DATA[k][0][i]<<" ";
+    std::cout<<std::endl;
+  }
+
+  std::cout<<"H size:"<<KK.Height.size()<<std::endl;
+  std::copy(KK.Height.begin(),KK.Height.end(),std::ostream_iterator<float>(std::cout,", "));
+  std::cout<<std::endl;
 }
 
 // End of Library.

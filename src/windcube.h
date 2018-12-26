@@ -12,6 +12,7 @@
 
 #define N_ALTITUDE 12   // Maximum number of altitude levels
 
+// ----------------------------------------------------------------
 // Struct variable for the V2 Lidar RTD formats (.rtd and .stdrtd)
 struct V2LidarRTD {
   std::vector<std::string> HeaderItem;
@@ -28,6 +29,7 @@ struct V2LidarRTD {
   std::vector<float> Nwiper;   // experimental!
 };
 
+// ----------------------------------------------------------------
 // Struct variable for the V2 Lidar STA formats (.sta and .stdsta)
 struct V2LidarSTA {
   std::vector<std::string> HeaderItem;
@@ -44,6 +46,7 @@ struct V2LidarSTA {
   std::vector<float> DUMMY;  // Dummy variable only used to pair with other struct variable.
 };
 
+// --------------------------------------------------------------
 // Struct variable for the V2 Lidar Gyro data format (.gyro)
 struct V2Gyro {
   std::vector<std::string> Datum;
@@ -63,6 +66,8 @@ struct V2Gyro {
   std::vector<std::array<float, 7> > GPS_Time;
 };
 
+// ----------------------------------------------------------------
+// Functions and Subroutines definition:
 template<typename V2Lidar>
 void ReadWindCubeLidar(std::string, V2Lidar &);
 
