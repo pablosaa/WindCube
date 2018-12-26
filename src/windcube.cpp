@@ -272,9 +272,9 @@ void ReadWindCubeGyro(std::string FileName, V2Gyro &KK){
 // SUBROUTINE to show the GNU Public Lincense notice:
 //
 void ShowGNUPL(){
-  std::cout<<"'WindCubMEX Library'  Copyright (C) 2018  Pablo Saavedra G.\n"<<std::endl;
-  std::cout<<"This program comes with ABSOLUTELY NO WARRANTY; for details see GNUPLv3 `LICENCE'.\n"<<std::endl;
-  std::cout<<"This is free software, and you are welcome to redistribute it\n"<<std::endl;
+  std::cout<<"'WindCubMEX Library'  Copyright (C) 2018  Pablo Saavedra G."<<std::endl;
+  std::cout<<"This program comes with ABSOLUTELY NO WARRANTY; for details see GNUPLv3 `LICENCE'."<<std::endl;
+  std::cout<<"This is free software, and you are welcome to redistribute it"<<std::endl;
   std::cout<<"under certain conditions; see GNUPLv3 `LICENCE' or <http://www.gnu.org/licenses/> for details.\n"<<std::endl;
   return;
 }
