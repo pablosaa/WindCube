@@ -1,12 +1,18 @@
 // ::::::::::: MAIN PROGRAM STARTS ::::::::::::::::::
 #include "mex.h"
 #include "windcube.h"
-#include<functional>
 
 #define MAXSIZEVAR 20
 
 using namespace std;
 
+int GetInputFile_Lidar(char *&, char *&);
+
+// **************************************************************************
+// Function to assign Gyro data struct to MEX variables as MATLAB structure
+// Part of the WindCubeMEX Project:
+// TODO:
+// * Include all variables
 mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
 
   mxArray *OutVar;
@@ -49,7 +55,15 @@ mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
 
   return(OutVar);
 }
+// ========= End of Function to assign Gyro data struct ======================
 
+
+// ***************************************************************************
+// Template Function to assign V2-Lidar data to MEX MATLAB structure
+// Used either for .sta, .rtd, .stastd or .rtdstd data files.
+// TODO:
+// * Test with all types of data files (sofar tested only with .sta and .rtd)
+// * Include Headers as MATLAB structure variable type cell?
 template<typename V2Lidar>
 mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
@@ -142,14 +156,50 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
   return(OutVar);
 }
+// =========== End of Template Function for V2-Lidar assignment ============
 
+
+// *************************************************************************
+//    MAIN MEX FUNCTION TO INTERFACE LIRARY WITH GNU OCTAVE/MATLAB
+//
+// INPUT: string with the full path to the Lidar data file to read.
+// OUTPUT: Structure with Lidar variables as structure fields according to
+//         the input file.
+// TODO:
+// * open file-dialoge to select input file when no input is specified,
+// * allow multiple outputs e.g. .STA and .GYRO data structures
+// *
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
-  char *tmpname;
-  size_t buflen = mxGetN(prhs[0]) + 1;
-  tmpname = (char *) mxMalloc(buflen);  // to extract the file extension
-  mxGetString(prhs[0], tmpname, (mwSize) buflen);
-  string fname(tmpname);
+
+  // ---------------------------
+  // Checking output parameters:
+  if(nlhs<1 || nlhs>2) mexErrMsgTxt("Need at least one output variable, try again ;)");
+
+  // Checking the input parameters:
+  char *filen, *OUTDIR;
+  if (nrhs>=0 && nrhs<4){
+    switch(nrhs){
+    case 1:
+      // first input: file name:
+      if(mxIsChar(prhs[0])){
+	size_t FileLength = mxGetN(prhs[0])+1;
+	filen = (char *) mxCalloc(FileLength, sizeof(char));
+	mxGetString(prhs[0], filen, FileLength);
+	mexPrintf("LIDAR file to open: %s\n",filen);
+      }
+      else mexErrMsgTxt("First input needs to be a string FILENAME.");
+      break;
+    case 0:
+      if(GetInputFile_Lidar(filen, OUTDIR)!=0)
+	mexErrMsgTxt("Wrong input LIDAR file!");
+      break;
+    default:
+      mexErrMsgTxt("Ups! something is wrong with the input variables!");
+    }
+  }
+
+  string fname(filen);
 
   unsigned int ExtType = GetExtensionItem(fname);
   cout<<"Opening File "<<fname<<" "<<ExtType<<endl;
@@ -183,3 +233,36 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
   return;
 }
+// ================ End of MAIN MEX FUNCTION ==============================
+
+
+// ****************************************************************
+//  ROUTINE TO OPEN AN INPUT-FILE DIALOG BOX
+// ARGUMENTS:
+// * filen:  input DBL file name (output arg).
+// * OUTDIR: directory where filen is located (output arg).
+// * BOXLIM: 4-element vector (lat_min,lon_min,lat_max,lon_max) (output atg).
+// RETURN: status=0 -> OK, status!=0 -> wrong procedure.
+int GetInputFile_Lidar(char *& filen, char *& OUTDIR){
+  int strLength, status;
+  mxArray *INVAR, *OUTVAR[2];
+
+  ShowGNUPL();      // displaying License, it is free!.
+  INVAR = mxCreateString("*.rtd");
+  status = mexCallMATLAB(2,OUTVAR,1,&INVAR,"uigetfile");
+  if (status!=0) mexErrMsgTxt("File selection not possible!");
+  // passing the input and output path
+  strLength = mxGetN(OUTVAR[0])+mxGetN(OUTVAR[1])+1;
+  if (strLength<4)  mexErrMsgTxt("File selection empty or canceled!");
+  filen = (char *) mxCalloc(strLength, sizeof(char));
+  mxGetString(OUTVAR[1],filen,strLength);
+  // passing the file name
+  strLength = mxGetN(OUTVAR[0])+1;
+  mxGetString(OUTVAR[0],filen+mxGetN(OUTVAR[1]),strLength);
+  strLength = mxGetN(OUTVAR[1])+1;
+  OUTDIR = (char *) mxCalloc(strLength,sizeof(char));
+  mxGetString(OUTVAR[1], OUTDIR, strLength);
+  mexPrintf("LIDAR file chosen: %s\n",filen);
+  return(status);
+}
+// ================ End of Lidar File Dialog-Box ========================

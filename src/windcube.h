@@ -81,5 +81,7 @@ void ConvertWindCube_Date(std::vector<std::string> &, std::vector<std::string> &
 
 void ReadWindCubeGyro(std::string, V2Gyro &);
 
+void ShowGNUPL();
+
 #endif
 
