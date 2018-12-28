@@ -11,6 +11,7 @@
 #include "mex.h"
 #include "windcube.h"
 
+// MAXSIZEVAR is the maximum number of MATLAB structure field names for the output variable.
 #define MAXSIZEVAR 20
 
 using namespace std;
@@ -293,26 +294,47 @@ mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
 // RETURN: status=0 -> OK, status!=0 -> wrong procedure.
 int GetInputFile_Lidar(char *& filen, char *& OUTDIR){
 
-  int strLength, status;
-  mxArray *INVAR, *OUTVAR[2];
+  int strLength, DirLength, status;
+  mxArray *INVAR[4], *OUTVAR[2];
 
   ShowGNUPL();      // displaying License, it is free!.
-  INVAR = mxCreateString("*.rtd; *.sta; *.rtdstd; *.stastd; *.gyro");
-  status = mexCallMATLAB(2,OUTVAR,1,&INVAR,"uigetfile");
+  INVAR[0] = mxCreateString("*.rtd; *.sta; *.rtdstd; *.stastd; *.gyro");
+  INVAR[1] = mxCreateString("Select a LIDAR input file...");
+  INVAR[2] = mxCreateString("MultiSelect");
+  INVAR[3] = mxCreateString("on");
+  status = mexCallMATLAB(2,OUTVAR,4,INVAR,"uigetfile");
   if (status!=0) mexErrMsgTxt("File selection not possible!");
 
-  // passing the input and output path
-  strLength = mxGetN(OUTVAR[0])+mxGetN(OUTVAR[1])+1;
-  if (strLength<4)  mexErrMsgTxt("File selection empty or canceled!");
-  filen = (char *) mxCalloc(strLength, sizeof(char));
-  mxGetString(OUTVAR[1],filen,strLength);
+  // Getting the Directory where files are located:
+  DirLength = mxGetN(OUTVAR[1]);
+  if (DirLength<4)  mexErrMsgTxt("File selection empty or canceled!");
+  OUTDIR = (char *) mxCalloc(DirLength+1,sizeof(char));
+  mxGetString(OUTVAR[1], OUTDIR, DirLength);
 
-  // passing the file name
-  strLength = mxGetN(OUTVAR[0])+1;
-  mxGetString(OUTVAR[0],filen+mxGetN(OUTVAR[1]),strLength);
-  strLength = mxGetN(OUTVAR[1])+1;
-  OUTDIR = (char *) mxCalloc(strLength,sizeof(char));
-  mxGetString(OUTVAR[1], OUTDIR, strLength);
+  // Check if cell (mulltiple input files selected) or if string (single file selected)
+  if (mxIsCell(OUTVAR[0])){
+    mwSize Ninfile = mxGetN(OUTVAR[0]);
+    for(int i=0; i<Ninfile; ++i){
+      mxArray *InFile = mxGetCell(OUTVAR[0],i);
+      strLength = mxGetN(InFile) +1 ;
+      filen = (char *) mxCalloc(DirLength + strLength, sizeof(char));
+      mxGetString(OUTVAR[1], filen, DirLength+1);
+      mxGetString(InFile,filen + DirLength, strLength);
+      cout<<filen<<endl;
+    }
+  }
+  // passing the input and output path
+  else{
+    //strLength = mxGetN(OUTVAR[0])+mxGetN(OUTVAR[1])+1;
+    //if (strLength<4)  mexErrMsgTxt("File selection empty or canceled!");
+    strLength = DirLength + mxGetN(OUTVAR[0]) +1 ;
+    filen = (char *) mxCalloc(strLength, sizeof(char));
+    mxGetString(OUTVAR[1],filen,strLength);
+    // passing the file name
+    strLength = mxGetN(OUTVAR[0])+1;
+    mxGetString(OUTVAR[0],filen+mxGetN(OUTVAR[1]),strLength);
+  }
+  
   mexPrintf("LIDAR file chosen: %s\n",filen);
   return(status);
 }
