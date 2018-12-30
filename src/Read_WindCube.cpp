@@ -1,7 +1,7 @@
 // ****************************************************************************
 // ::::::::::: MAIN MEX PROGRAM TO WORK WITH LEOSPHERE LIDAR ::::::::::::::::::
 //
-// Part of 'WindCubeMEX' repository.
+// Part of 'WindCubeLib' repository.
 // (c) 2018, Pablo Saavedra G.
 // pablo.saa@uib.no
 // University of Bergen, Norway
@@ -17,7 +17,8 @@
 using namespace std;
 
 // Definition of Functions and Subroutines:
-int GetInputFile_Lidar(char *&, char *&);
+////int GetInputFile_Lidar(char *&, char *&);
+int GetInputFile_Lidar(vector<string> &);
 mxArray *VARGYRO_MATLAB_OUT(V2Gyro &);
 template<typename V2Lidar>
 mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &);
@@ -42,60 +43,90 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   if(nlhs<1 || nlhs>2) mexErrMsgTxt("Need at least one output variable, try again ;)");
 
   // Checking the input parameters:
-  char *filen, *OUTDIR;
+  char *filen=NULL; //, *OUTDIR;
+  vector<string> InFiles;
+  bool MULTIFILES=false;
+  unsigned int NTotalFiles=0;
   if (nrhs>=0 && nrhs<4){
     switch(nrhs){
     case 1:
       // first input: file name:
       if(mxIsChar(prhs[0])){
+	NTotalFiles = 1;
 	size_t FileLength = mxGetN(prhs[0])+1;
 	filen = (char *) mxCalloc(FileLength, sizeof(char));
 	mxGetString(prhs[0], filen, FileLength);
 	mexPrintf("LIDAR file to open: %s\n",filen);
       }
+      if(mxIsCell(prhs[0])){
+	NTotalFiles = mxGetN(prhs[0]);
+	for(unsigned int i=0; i<NTotalFiles; ++i){
+	  mxArray *aFile = mxGetCell(prhs[0],i);
+	  if(!mxIsChar(aFile)) mexErrMsgTxt("Sorry input file is not a string!");
+	  size_t FileLength = mxGetN(aFile)+1;
+	  mxGetString(aFile,filen,FileLength);
+	  InFiles.push_back(filen);
+	}
+      }
       else mexErrMsgTxt("First input needs to be a string FILENAME.");
       break;
     case 0:
-      if(GetInputFile_Lidar(filen, OUTDIR)!=0)
+      if(GetInputFile_Lidar(InFiles)!=0)   //filen, OUTDIR)!=0)
 	mexErrMsgTxt("Wrong input LIDAR file!");
+      MULTIFILES = true;
+      NTotalFiles = InFiles.size();
       break;
     default:
       mexErrMsgTxt("Ups! something is wrong with the input variables!");
     }
   }
 
-  string fname(filen);
+  cout<<"Number of Selected Files is: "<<NTotalFiles<<endl;
+  if(NTotalFiles>1) plhs[0] = mxCreateCellMatrix((mwSize) NTotalFiles, 1);
+  for(unsigned int i=0; i<NTotalFiles; ++i){
+    //string fname(filen);
+    string fname = NTotalFiles==1?filen:InFiles.at(i);
 
-  unsigned int ExtType = GetExtensionItem(fname);
-  cout<<"Opening File "<<fname<<" "<<ExtType<<endl;
+    unsigned int ExtType = GetExtensionItem(fname);
+    cout<<"Opening File "<<fname<<" "<<ExtType<<endl;
 
-  V2LidarSTA STA;
-  V2LidarRTD RTD;
-  V2Gyro GYRO;
+    V2LidarSTA STA;
+    V2LidarRTD RTD;
+    V2Gyro GYRO;
   
-  switch(ExtType){
-  case 1:
-    ReadWindCubeLidar<V2LidarSTA>(fname, STA);
-    PrintV2Lidar<V2LidarSTA>(fname, STA);
-    plhs[0] = VARLIDAR_MATLAB_OUT<V2LidarSTA>(STA);
-    break;
-  case 2:
-    break;
-  case 3:
-    ReadWindCubeLidar<V2LidarRTD>(fname, RTD);
-    PrintV2Lidar<V2LidarRTD>(fname, RTD);
-    plhs[0] = VARLIDAR_MATLAB_OUT<V2LidarRTD>(RTD);
-    break;
-  case 4:
-    break;
-  case 5:
-    ReadWindCubeGyro(fname,GYRO);
-    plhs[0] = VARGYRO_MATLAB_OUT(GYRO);
-    break;
-  default:
-    cout<<"Sorry... No assignment done :("<<endl;
-  }
+    switch(ExtType){
+    case 1:
+      ReadWindCubeLidar<V2LidarSTA>(fname, STA);
+      PrintV2Lidar<V2LidarSTA>(fname, STA);
+      if(MULTIFILES)
+	mxSetCell(plhs[0],i,VARLIDAR_MATLAB_OUT<V2LidarSTA>(STA));
+      else
+	plhs[0] = VARLIDAR_MATLAB_OUT<V2LidarSTA>(STA);
+      break;
+    case 2:
+      break;
+    case 3:
+      ReadWindCubeLidar<V2LidarRTD>(fname, RTD);
+      PrintV2Lidar<V2LidarRTD>(fname, RTD);
+      if(MULTIFILES)
+	mxSetCell(plhs[0],i,VARLIDAR_MATLAB_OUT<V2LidarRTD>(RTD));
+      else
+	plhs[0] = VARLIDAR_MATLAB_OUT<V2LidarRTD>(RTD);
+      break;
+    case 4:
+      break;
+    case 5:
+      ReadWindCubeGyro(fname,GYRO);
+      if(MULTIFILES)
+	mxSetCell(plhs[0],i,VARGYRO_MATLAB_OUT(GYRO));
+      else
+	plhs[0] = VARGYRO_MATLAB_OUT(GYRO);
+      break;
+    default:
+      cout<<"Sorry... No assignment done :("<<endl;
+    }  // end for command switch(ExtType)
 
+  } // end for Number of Input Files
   return;
 }
 // =========== End of MAIN MATLAB/OCTAVE MEX FUNCTION =======================
@@ -146,7 +177,7 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   //   function<vector<float>(V2LidarSTA&)> col1 = &V2LidarSTA::Vbatt;
 
   // Converting Date and Hour from string to numeric array:
-  ConvertWindCube_Date(T.Datum,T.Uhrzeit,Datum);  
+  ConvertWindCube_Date(T.Datum,T.Uhrzeit,Datum);
   // Common variables:
   mxArray *DATE = mxCreateNumericMatrix(Ndat,6,mxDOUBLE_CLASS, mxREAL);
   mxArray *ALTI = mxCreateNumericMatrix(Nalt,1,mxDOUBLE_CLASS, mxREAL);
@@ -292,13 +323,19 @@ mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
 // * OUTDIR: directory where filen is located (output arg).
 // * BOXLIM: 4-element vector (lat_min,lon_min,lat_max,lon_max) (output atg).
 // RETURN: status=0 -> OK, status!=0 -> wrong procedure.
-int GetInputFile_Lidar(char *& filen, char *& OUTDIR){
+//int GetInputFile_Lidar(char *& filen, char *& OUTDIR){
+int GetInputFile_Lidar(vector<string> &InFiles){
 
+  char *filen, *OUTDIR;
   int strLength, DirLength, status;
   mxArray *INVAR[4], *OUTVAR[2];
 
   ShowGNUPL();      // displaying License, it is free!.
-  INVAR[0] = mxCreateString("*.rtd; *.sta; *.rtdstd; *.stastd; *.gyro");
+  mxArray *FilterCell = mxCreateString("*.rtd; *.sta; *.rtdstd; *.stastd; *.gyro");
+  INVAR[0] = mxCreateCellMatrix(1, 2);
+  mxSetCell(INVAR[0],0,FilterCell);
+  mxSetCell(INVAR[0],1,mxCreateString("V2 Supported Files"));
+  //INVAR[0] = mxCreateString("*.rtd; *.sta; *.rtdstd; *.stastd; *.gyro");
   INVAR[1] = mxCreateString("Select a LIDAR input file...");
   INVAR[2] = mxCreateString("MultiSelect");
   INVAR[3] = mxCreateString("on");
@@ -321,6 +358,7 @@ int GetInputFile_Lidar(char *& filen, char *& OUTDIR){
       mxGetString(OUTVAR[1], filen, DirLength+1);
       mxGetString(InFile,filen + DirLength, strLength);
       cout<<filen<<endl;
+      InFiles.push_back(filen);
     }
   }
   // passing the input and output path
@@ -333,6 +371,7 @@ int GetInputFile_Lidar(char *& filen, char *& OUTDIR){
     // passing the file name
     strLength = mxGetN(OUTVAR[0])+1;
     mxGetString(OUTVAR[0],filen+mxGetN(OUTVAR[1]),strLength);
+    InFiles.push_back(filen);
   }
   
   mexPrintf("LIDAR file chosen: %s\n",filen);

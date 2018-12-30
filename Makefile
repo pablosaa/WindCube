@@ -24,7 +24,7 @@ MATLABROOT = /usr/local/MATLAB/R2018a/bin
 
 # Definition of Compilers
 MEX = $(MATLABROOT)/mex   # Matlab compiler
-OCT = /bin/mkoctfile      # Octave compiler
+OCT = /usr/bin/mkoctfile      # Octave compiler
 GCC = g++
 
 # General Options to pass to the compiler defined in CFLAGS
@@ -47,6 +47,9 @@ $(SRC_PATH)/windcube.o: $(SRC_PATH)/windcube.cpp
 matlab: $(SRC_PATH)/windcube.o 
 	$(MEX) $(MYFLAGS) $(SRC_PATH)/Read_WindCube.cpp $(SRC_PATH)/windcube.o -outdir $(BIN_PATH)
 
+octave: $(SRC_PATH)/windcube.o
+	$(OCT) $(COMMON_CXX) --mex $(SRC_PATH)/Read_WindCube.cpp $(SRC_PATH)/windcube.o -o $(BIN_PATH)/Read_WindCube.mex
+ 
 clean:
 	rm $(SRC_PATH)/*.o
 
