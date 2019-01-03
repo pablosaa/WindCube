@@ -8,6 +8,12 @@
 // SEE LICENCE.TXT
 // ***************************************************************************
 
+
+// VARIABLES DESCRIPTION:
+// RTD:
+// Fields:
+// * WIND 8-columns: CNR [dB]; Radial Wind [m/s]; Radial Wind Dispersion [m/s]; Horizontal Wind [m/s]; Wind Dir. [°]; X-, Y-, Z-Wind component [m/s]
+
 #include "mex.h"
 #include "windcube.h"
 
