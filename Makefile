@@ -20,10 +20,10 @@ HOME_PATH = $(CURDIR)
 SRC_PATH = $(HOME_PATH)/src
 LIB_PATH = $(HOME_PATH)/lib
 BIN_PATH = $(HOME_PATH)/bin
-MATLABROOT = /usr/local/MATLAB/R2018a/bin
+FOO := $(firstword $(shell which matlab))
 
 # Definition of Compilers
-MEX = $(MATLABROOT)/mex   # Matlab compiler
+MEX = $(subst matlab,mex,$(shell readlink -f $(FOO)))
 OCT = /usr/bin/mkoctfile      # Octave compiler
 GCC = g++
 
