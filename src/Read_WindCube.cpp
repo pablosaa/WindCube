@@ -64,7 +64,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 	mxGetString(prhs[0], filen, FileLength);
 	mexPrintf("LIDAR file to open: %s\n",filen);
       }
-      if(mxIsCell(prhs[0])){
+      else if(mxIsCell(prhs[0])){
 	NTotalFiles = mxGetN(prhs[0]);
 	for(unsigned int i=0; i<NTotalFiles; ++i){
 	  mxArray *aFile = mxGetCell(prhs[0],i);
