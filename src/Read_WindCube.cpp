@@ -167,7 +167,8 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   mwSize Nalt = T.Height.size();
   mwSize Nwin = T.WIND_DATA[0][0].size();
   cout<<"Number of Wind variables: "<<Nwin<<endl;
-  mwSize dims[3] = {Ndat,Nalt,Nwin};
+  //mwSize dims[3] = {Ndat,Nalt,Nwin};
+  mwSize dims[3] = {Ndat,Nalt,2};
   double Datum[Ndat][6];
 
   // Auxiliary Variables:
@@ -187,7 +188,8 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   // Common variables:
   mxArray *DATE = mxCreateNumericMatrix(Ndat,6,mxDOUBLE_CLASS, mxREAL);
   mxArray *ALTI = mxCreateNumericMatrix(Nalt,1,mxDOUBLE_CLASS, mxREAL);
-  mxArray *WIND = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS, mxREAL);
+  mxArray *WIND_2V = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS, mxREAL);
+  mxArray *WIND_1V = mxVreateNumereicMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
   mxArray *HEADER; //= mxCreateCellMatrix(mwSize m, mwSize n);
   // temporal variables:
 
@@ -212,6 +214,7 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
   for(int i=0; i<Nalt; ++i) *(mxGetPr(ALTI)+i) = (double) T.Height[i];
 
+  // Sorting out the WIND variables depending on data type: RTD or STA
   for(int k=0; k<Nwin; ++k)
     for(int i=0; i<Nalt; ++i)
       for(int j=0; j<Ndat; ++j)
