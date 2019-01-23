@@ -167,12 +167,12 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   mwSize Nalt = T.Height.size();
   mwSize Nwin = T.WIND_DATA[0][0].size();
   cout<<"Number of Wind variables: "<<Nwin<<endl;
-  //mwSize dims[3] = {Ndat,Nalt,Nwin};
-  mwSize dims[3] = {Ndat,Nalt,2};
+  mwSize dims[3] = {Ndat,Nalt,Nwin};
+  //mwSize dims[3] = {Ndat,Nalt,2};
   double Datum[Ndat][6];
 
   // Auxiliary Variables:
-  const char *FieldsIN[MAXSIZEVAR];
+  //const char *FieldsIN[MAXSIZEVAR];
 
   V2LidarSTA *H;
   H = (V2LidarSTA *) &T;
@@ -181,6 +181,7 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
   bool ISRTD = is_same<V2Lidar,V2LidarRTD>::value;
 
+  const char *FieldsIN[ISRTD?9:MAXSIZEVAR];
   //   function<vector<float>(V2LidarSTA&)> col1 = &V2LidarSTA::Vbatt;
 
   // Converting Date and Hour from string to numeric array:
@@ -188,21 +189,21 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   // Common variables:
   mxArray *DATE = mxCreateNumericMatrix(Ndat,6,mxDOUBLE_CLASS, mxREAL);
   mxArray *ALTI = mxCreateNumericMatrix(Nalt,1,mxDOUBLE_CLASS, mxREAL);
-  mxArray *WIND_2V = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS, mxREAL);
-  mxArray *WIND_1V = mxVreateNumereicMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+  mxArray *WIND2V = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS, mxREAL);
+  mxArray *WIND1V = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
   mxArray *HEADER; //= mxCreateCellMatrix(mwSize m, mwSize n);
   // temporal variables:
 
   int NFields;
 
   if(is_same<V2Lidar,V2LidarRTD>::value){
-    const char *fields[] = {"TIME","HEIGHT","WIND","ALPHA","BETA","GAMMA","POS","INTEMP","HEADER"};      
+    const char *fields[] = {"TIME","HEIGHT","WIND_DIRECTION","ALPHA","BETA","GAMMA","POS","INTEMP","HEADER"};      
     NFields = sizeof(fields)/sizeof(fields[0]);
     for(int i=0;i<NFields; ++i) FieldsIN[i] = fields[i];    
   }
 
   if(is_same<V2Lidar,V2LidarSTA>::value){
-    const char *fields[] = {"TIME","HEIGHT","WIND","INTEMP","TEMP","PRESS","RH","WIPER","HEADER"};
+    const char *fields[] = {"TIME","HEIGHT","WIND_DIRECTION","INTEMP","TEMP","PRESS","RH","WIPER","HEADER","CNR","MIN_CNR","WIND_HOR","WIND_STD_HOR"};
     NFields = sizeof(fields)/sizeof(fields[0]);
     for(int i=0;i<NFields; ++i) FieldsIN[i] = fields[i];
   }
@@ -215,10 +216,10 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   for(int i=0; i<Nalt; ++i) *(mxGetPr(ALTI)+i) = (double) T.Height[i];
 
   // Sorting out the WIND variables depending on data type: RTD or STA
-  for(int k=0; k<Nwin; ++k)
-    for(int i=0; i<Nalt; ++i)
-      for(int j=0; j<Ndat; ++j)
-	*(mxGetPr(WIND) + j + i*Ndat + k*Ndat*Nalt) = (double) T.WIND_DATA[j][i][k];
+  //for(int j=0; j<Ndat; ++j)
+  //  for(int i=0; i<Nalt; ++i)
+  //    for(int k=0; k<Nwin; ++k)
+  //	*(mxGetPr(WIND2V) + j + i*Ndat + k*Ndat*Nalt) = (double) T.WIND_DATA[j][i][k];
 
   for(int k=0; k<NFields; ++k){
     mxArray *var = mxCreateNumericMatrix(Ndat,1,mxDOUBLE_CLASS, mxREAL);
@@ -226,7 +227,14 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
       switch(k){
       case 0:
       case 1:
+	break;
       case 2:
+	// MEX 2D variable needs to be changed from previous definition
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][4];
+	//for(int l=0; l<Nwin; ++l)
+	    //*(mxGetPr(WIND2D) + i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][l];
 	break;
       case 3:
 	*(mxGetPr(var)+i) = (double) ISRTD?P->Alpha[i]:(double) H->Temperature[i];
@@ -246,15 +254,35 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
       case 8:
 	HEADER = CreateHeaderCell(T.HeaderItem,T.HeaderValue);
 	break;
+      case 9:
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:7];  // for RTD to be fixed
+	break;
+      case 10:
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:8];  // for RTD to be fixed
+	break;
+      case 11:
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:0];  // for RTD to be fixed
+	break;
+      case 12:
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:1];  // for RTD to be fixed
+	break;
       default:
 	cout<<"ERROR: assigning MATLAB structure variable!"<<endl;
       }
     }
-    mxSetFieldByNumber(OutVar,0,k,k<8?var:HEADER);
+    mxSetFieldByNumber(OutVar,0,k,k!=8?var:HEADER);
   }
   mxSetFieldByNumber(OutVar,0,0,DATE);
   mxSetFieldByNumber(OutVar,0,1,ALTI);
-  mxSetFieldByNumber(OutVar,0,2,WIND);
+  //mxSetFieldByNumber(OutVar,0,2,WIND2V);
 
   return(OutVar);
 }
