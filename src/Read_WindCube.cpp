@@ -197,13 +197,35 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   int NFields;
 
   if(is_same<V2Lidar,V2LidarRTD>::value){
-    const char *fields[] = {"TIME","HEIGHT","WIND_DIRECTION","ALPHA","BETA","GAMMA","POS","INTEMP","HEADER"};      
+    const char *fields[] = {"HEADER",
+			    "TIME",
+			    "HEIGHT",
+			    "ALPHA",
+			    "BETA",
+			    "GAMMA",
+			    "POS",
+			    "INTEMP",
+			    "WIND_DIRECTION"
+    };      
     NFields = sizeof(fields)/sizeof(fields[0]);
     for(int i=0;i<NFields; ++i) FieldsIN[i] = fields[i];    
   }
 
   if(is_same<V2Lidar,V2LidarSTA>::value){
-    const char *fields[] = {"TIME","HEIGHT","WIND_DIRECTION","INTEMP","TEMP","PRESS","RH","WIPER","HEADER","CNR","MIN_CNR","WIND_HOR","WIND_STD_HOR"};
+    const char *fields[] = {"HEADER",
+			    "TIME",
+			    "HEIGHT",
+			    "INTEMP",
+			    "TEMP",
+			    "PRESS",
+			    "RH",
+			    "WIPER",
+			    "WIND_DIRECTION",
+			    "WIND_HORZ_VEL",
+			    "WIND_HORZ_STD",
+			    "CNR",
+			    "MIN_CNR"
+    };
     NFields = sizeof(fields)/sizeof(fields[0]);
     for(int i=0;i<NFields; ++i) FieldsIN[i] = fields[i];
   }
@@ -226,15 +248,11 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
     for(int i=0; i<Ndat; ++i){
       switch(k){
       case 0:
-      case 1:
+	// HEADER cell for all type of data file
+	HEADER = CreateHeaderCell(T.HeaderItem,T.HeaderValue);
 	break;
+      case 1:
       case 2:
-	// MEX 2D variable needs to be changed from previous definition
-	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
-	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][4];
-	//for(int l=0; l<Nwin; ++l)
-	    //*(mxGetPr(WIND2D) + i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][l];
 	break;
       case 3:
 	*(mxGetPr(var)+i) = (double) ISRTD?P->Alpha[i]:(double) H->Temperature[i];
@@ -252,37 +270,44 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 	*(mxGetPr(var)+i) = (double) ISRTD?P->Temperature[i]:(double) H->Nwiper[i];
 	break;
       case 8:
-	HEADER = CreateHeaderCell(T.HeaderItem,T.HeaderValue);
+	// Wind direction:
+	// MEX 2D variable needs to be changed from previous definition
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][4];
 	break;
       case 9:
-	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
-	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:7];  // for RTD to be fixed
-	break;
-      case 10:
-	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
-	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:8];  // for RTD to be fixed
-	break;
-      case 11:
+	// Horizontal wind speed:
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
 	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:0];  // for RTD to be fixed
 	break;
-      case 12:
+      case 10:
+	// STA.-Horizontal wind speed STD:
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
 	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:1];  // for RTD to be fixed
+	break;
+      case 11:
+	// CNR
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:7];  // for RTD to be fixed
+	break;
+      case 12:
+	// Minimum CNR
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:8];  // for RTD to be fixed
 	break;
       default:
 	cout<<"ERROR: assigning MATLAB structure variable!"<<endl;
       }
     }
-    mxSetFieldByNumber(OutVar,0,k,k!=8?var:HEADER);
+    mxSetFieldByNumber(OutVar,0,k,k==0?HEADER:var);
   }
-  mxSetFieldByNumber(OutVar,0,0,DATE);
-  mxSetFieldByNumber(OutVar,0,1,ALTI);
-  //mxSetFieldByNumber(OutVar,0,2,WIND2V);
+  mxSetFieldByNumber(OutVar,0,1,DATE);
+  mxSetFieldByNumber(OutVar,0,2,ALTI);
 
   return(OutVar);
 }
