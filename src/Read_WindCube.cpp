@@ -197,34 +197,42 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   int NFields;
 
   if(is_same<V2Lidar,V2LidarRTD>::value){
-    const char *fields[] = {"HEADER",
+    const char *fields[] = {"HEADER",    // 0
 			    "TIME",
 			    "HEIGHT",
 			    "ALPHA",
 			    "BETA",
-			    "GAMMA",
+			    "GAMMA",     // 5
 			    "POS",
-			    "INTEMP",
-			    "WIND_DIRECTION"
+			    "IN_TEMP",
+			    "WIND_DIRECTION",
+			    "WIND_HORIZONTAL",
+			    "XYZ_WIND_VECTOR",      // 10
+			    "WIND_RADIAL_VEL",
+			    "WIND_RADIAL_STAT",
+			    "CNR"
     };      
     NFields = sizeof(fields)/sizeof(fields[0]);
     for(int i=0;i<NFields; ++i) FieldsIN[i] = fields[i];    
   }
 
   if(is_same<V2Lidar,V2LidarSTA>::value){
-    const char *fields[] = {"HEADER",
-			    "TIME",
+    const char *fields[] = {"HEADER",  // 0
+			    "TIME",    // 1
 			    "HEIGHT",
-			    "INTEMP",
-			    "TEMP",
-			    "PRESS",
+			    "IN_TEMP",
+			    "TEMPERATURE",
+			    "PRESSION",    // 5
 			    "RH",
 			    "WIPER",
 			    "WIND_DIRECTION",
-			    "WIND_HORZ_VEL",
-			    "WIND_HORZ_STD",
+			    "WIND_HORIZONTAL",
+			    "WIND_HORZ_STAT",     // 10
+			    "WIND_VERT_VEL",
+			    "WIND_VERT_STAT",
+			    "DOPPLER_SPECTRA_BROAD",
 			    "CNR",
-			    "MIN_CNR"
+			    "DATA_AVAL"   // 15
     };
     NFields = sizeof(fields)/sizeof(fields[0]);
     for(int i=0;i<NFields; ++i) FieldsIN[i] = fields[i];
@@ -271,7 +279,6 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 	break;
       case 8:
 	// Wind direction:
-	// MEX 2D variable needs to be changed from previous definition
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
 	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][4];
@@ -280,25 +287,51 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 	// Horizontal wind speed:
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:0];  // for RTD to be fixed
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?3:0];
 	break;
       case 10:
-	// STA.-Horizontal wind speed STD:
-	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	// STATS-Horizontal wind speed (spread, min, max):
+	if(i==0){
+	  dims[2] = 3;
+	  var = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS, mxREAL);
+	}
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:1];  // for RTD to be fixed
+	  for(int l=0; l<3; ++l)
+	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][ISRTD?(l+5):(l+1)];
 	break;
       case 11:
-	// CNR
+	// STA: Vertical wind velocity. RTD: Wind radial velocity
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:7];  // for RTD to be fixed
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:5];
 	break;
       case 12:
-	// Minimum CNR
+	// STA: Vertical wind velocity statistics (Dispersion). RTD: Wind Radial Dispersion
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:8];  // for RTD to be fixed
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?2:6];
+	break;
+      case 13:
+	// STA: Doppler spectra broad. RTD: CNR
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?0:9];
+	break;
+      case 14:
+	// STA:  CNR (CNR, min)
+	if(i==0){
+	  dims[2] = 2;
+	  var = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS, mxREAL);
+	}
+	for(int h=0; h<Nalt; ++h)
+	  for(int l=0; l<2; ++l)
+	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][ISRTD?1:(l+7)];  // NO RTD option
+	break;
+      case 15:
+	// STA: Data availability.
+	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
+	for(int h=0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:10];  // No RTD option
 	break;
       default:
 	cout<<"ERROR: assigning MATLAB structure variable!"<<endl;
