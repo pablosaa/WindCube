@@ -62,6 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 	size_t FileLength = mxGetN(prhs[0])+1;
 	filen = (char *) mxCalloc(FileLength, sizeof(char));
 	mxGetString(prhs[0], filen, FileLength);
+	InFiles.push_back(filen);
 	mexPrintf("LIDAR file to open: %s\n",filen);
       }
       else if(mxIsCell(prhs[0])){
@@ -77,10 +78,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
       else mexErrMsgTxt("First input needs to be a string FILENAME.");
       break;
     case 0:
-      if(GetInputFile_Lidar(InFiles)!=0)   //filen, OUTDIR)!=0)
+      if(GetInputFile_Lidar(InFiles)!=0)
 	mexErrMsgTxt("Wrong input LIDAR file!");
-      MULTIFILES = true;
       NTotalFiles = InFiles.size();
+      if(NTotalFiles==1)
+	filen = &(InFiles.at(0)[0]);
+      else
+	MULTIFILES = true;
+
       break;
     default:
       mexErrMsgTxt("Ups! something is wrong with the input variables!");
@@ -91,9 +96,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   if(NTotalFiles>1) plhs[0] = mxCreateCellMatrix((mwSize) NTotalFiles, 1);
   for(unsigned int i=0; i<NTotalFiles; ++i){
     //string fname(filen);
-    string fname = NTotalFiles==1?filen:InFiles.at(i);
-
+    string fname = InFiles.at(i); //NTotalFiles==1?filen:InFiles.at(i);
+    // quick check if input file exist?
+    fstream f(InFiles.at(i).c_str());
+    if(!f) mexErrMsgTxt("File does not exist!");
+    else f.close();
+    
     unsigned int ExtType = GetExtensionItem(fname);
+    
     cout<<"Opening File "<<fname<<" "<<ExtType<<endl;
 
     V2LidarSTA STA;
@@ -102,6 +112,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   
     switch(ExtType){
     case 1:
+    case 2:
       ReadWindCubeLidar<V2LidarSTA>(fname, STA);
       PrintV2Lidar<V2LidarSTA>(fname, STA);
       if(MULTIFILES)
@@ -109,17 +120,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
       else
 	plhs[0] = VARLIDAR_MATLAB_OUT<V2LidarSTA>(STA);
       break;
-    case 2:
-      break;
     case 3:
+    case 4:
       ReadWindCubeLidar<V2LidarRTD>(fname, RTD);
       PrintV2Lidar<V2LidarRTD>(fname, RTD);
       if(MULTIFILES)
 	mxSetCell(plhs[0],i,VARLIDAR_MATLAB_OUT<V2LidarRTD>(RTD));
       else
 	plhs[0] = VARLIDAR_MATLAB_OUT<V2LidarRTD>(RTD);
-      break;
-    case 4:
       break;
     case 5:
       ReadWindCubeGyro(fname,GYRO);
@@ -173,7 +181,7 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
   // Auxiliary Variables:
   //const char *FieldsIN[MAXSIZEVAR];
-
+  
   V2LidarSTA *H;
   H = (V2LidarSTA *) &T;
   V2LidarRTD *P;
@@ -189,8 +197,6 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   // Common variables:
   mxArray *DATE = mxCreateNumericMatrix(Ndat,6,mxDOUBLE_CLASS, mxREAL);
   mxArray *ALTI = mxCreateNumericMatrix(Nalt,1,mxDOUBLE_CLASS, mxREAL);
-  mxArray *WIND2V = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS, mxREAL);
-  mxArray *WIND1V = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
   mxArray *HEADER; //= mxCreateCellMatrix(mwSize m, mwSize n);
   // temporal variables:
 
@@ -239,11 +245,6 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   }
 
   OutVar = mxCreateStructMatrix(1,1,NFields,FieldsIN);
-  for(int i=0; i<6; ++i)
-    for(int j=0; j<Ndat; ++j)
-      *(mxGetPr(DATE)+j+i*Ndat) = Datum[j][i];
-
-  for(int i=0; i<Nalt; ++i) *(mxGetPr(ALTI)+i) = (double) T.Height[i];
 
   // Sorting out the WIND variables depending on data type: RTD or STA
   //for(int j=0; j<Ndat; ++j)
@@ -251,17 +252,27 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   //    for(int k=0; k<Nwin; ++k)
   //	*(mxGetPr(WIND2V) + j + i*Ndat + k*Ndat*Nalt) = (double) T.WIND_DATA[j][i][k];
 
-  for(int k=0; k<NFields; ++k){
+  // Fields from 0:HEADER, 1:DATE and 2:HEIGHT are filled here:
+  // HEADER cell for all type of data file:
+  HEADER = CreateHeaderCell(T.HeaderItem,T.HeaderValue);
+  mxSetFieldByNumber(OutVar,0,0,HEADER);
+  
+  // TIME:
+  for(int i=0; i<6; ++i)
+    for(int j=0; j<Ndat; ++j)
+      *(mxGetPr(DATE)+j+i*Ndat) = Datum[j][i];
+
+  mxSetFieldByNumber(OutVar,0,1,DATE);
+
+  // ALTITUDE:
+  for(int i=0; i<Nalt; ++i) *(mxGetPr(ALTI)+i) = (double) T.Height[i];
+  mxSetFieldByNumber(OutVar,0,2,ALTI);
+  
+  // from Field number 3 are filled in the following loop:
+  for(int k=3; k<NFields; ++k){
     mxArray *var = mxCreateNumericMatrix(Ndat,1,mxDOUBLE_CLASS, mxREAL);
     for(int i=0; i<Ndat; ++i){
       switch(k){
-      case 0:
-	// HEADER cell for all type of data file
-	HEADER = CreateHeaderCell(T.HeaderItem,T.HeaderValue);
-	break;
-      case 1:
-      case 2:
-	break;
       case 3:
 	*(mxGetPr(var)+i) = (double) ISRTD?P->Alpha[i]:(double) H->Temperature[i];
 	break;
@@ -318,29 +329,27 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?0:9];
 	break;
       case 14:
-	// STA:  CNR (CNR, min)
+	// STA:  CNR (CNR, min). RTD: no needed.
 	if(i==0){
 	  dims[2] = 2;
 	  var = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS, mxREAL);
 	}
 	for(int h=0; h<Nalt; ++h)
 	  for(int l=0; l<2; ++l)
-	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][ISRTD?1:(l+7)];  // NO RTD option
+	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][ISRTD?1:(l+7)];
 	break;
       case 15:
-	// STA: Data availability.
+	// STA: Data availability. RTD: no needed.
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:10];  // No RTD option
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?1:10];
 	break;
       default:
 	cout<<"ERROR: assigning MATLAB structure variable!"<<endl;
       }
-    }
-    mxSetFieldByNumber(OutVar,0,k,k==0?HEADER:var);
-  }
-  mxSetFieldByNumber(OutVar,0,1,DATE);
-  mxSetFieldByNumber(OutVar,0,2,ALTI);
+    }   // end loop over Ndat
+    mxSetFieldByNumber(OutVar,0,k,var);
+  }   // end loop over NFields
 
   return(OutVar);
 }
@@ -426,7 +435,7 @@ int GetInputFile_Lidar(vector<string> &InFiles){
   mxArray *INVAR[4], *OUTVAR[2];
 
   ShowGNUPL();      // displaying License, it is free!.
-  mxArray *FilterCell = mxCreateString("*.rtd; *.sta; *.rtdstd; *.stastd; *.gyro");
+  mxArray *FilterCell = mxCreateString("*.rtd; *.sta; *.stdrtd; *.stdsta; *.gyro");
   INVAR[0] = mxCreateCellMatrix(1, 2);
   mxSetCell(INVAR[0],0,FilterCell);
   mxSetCell(INVAR[0],1,mxCreateString("V2 Supported Files"));

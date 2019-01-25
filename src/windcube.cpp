@@ -43,7 +43,11 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
   // Open File to read V2 Lidar data files:
   std::fstream in;
   in.open(FileName.c_str(),std::ios::in);
-
+  if(!in){
+    std::cout<<"ERROR: File cannot be open!"<<std::endl;
+    return;
+  }
+  
   // Reading the Headers part:
   std::getline(in,header,'=');
   in>>NHead;
@@ -163,9 +167,9 @@ unsigned int GetExtensionItem(std::string fname){
   int idx = fname.find_last_of(".");
   std::string auxstr = fname.substr(idx,fname.length());
   if(!strcmp(auxstr.c_str(), ".sta")) EXTITEM = 1;
-  else if(!strcmp(auxstr.c_str(), ".stastd")) EXTITEM = 2;
+  else if(!strcmp(auxstr.c_str(), ".stdsta")) EXTITEM = 2;
   else if(!strcmp(auxstr.c_str(), ".rtd")) EXTITEM = 3;
-  else if(!strcmp(auxstr.c_str(), ".rtdstd")) EXTITEM = 4;
+  else if(!strcmp(auxstr.c_str(), ".stdrtd")) EXTITEM = 4;
   else if(!strcmp(auxstr.c_str(), ".gyro")) EXTITEM = 5;
   else std::cout<<"ERROR: Extension not supported!"<<std::endl;
   return(EXTITEM);
@@ -207,6 +211,10 @@ void ReadWindCubeGyro(std::string FileName, V2Gyro &KK){
   // Open File to read V2 Lidar GYRO data files:
   std::fstream in;
   in.open(FileName.c_str(),std::ios::in);
+  if(!in){
+    std::cout<<"ERROR: File cannot be open!"<<std::endl;
+    return;
+  }
   
   std::getline(in,garbage);   // getting out Profile Headers
 
@@ -300,5 +308,7 @@ void PrintV2Lidar(std::string FileName,V2Lidar &KK){
   std::copy(KK.Height.begin(),KK.Height.end(),std::ostream_iterator<float>(std::cout,", "));
   std::cout<<std::endl;
 }
+// ================== End of Subroutine PrintV2Lidar =================================
 
+// ______________________________________________-
 // End of Library.
