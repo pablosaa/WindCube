@@ -1,5 +1,5 @@
-# WindCube
-A library to manage data from the LeoSphere WindCube Lidars. This library has been developed as a tool for the instrumentation part of the OBLO (Off-shore Boundary Layer Observatory) project by the Geophysical Institute, University of Begen, Norway.
+# WindCubeLib
+A library to manage data from the LeoSphere WindCube Lidars. This library has been developed as a tool for the instrumentation part of the [OBLO](https://oblo.w.uib.no/) (Off-shore Boundary Layer Observatory) project by the Geophysical Institute, University of Begen, Norway.
 
 The repository also contains code for utilities to make the library used by MATLAB/GNU Octave and Python3 (not yet tested) under Linux OS.
 
