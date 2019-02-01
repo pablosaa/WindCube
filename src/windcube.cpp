@@ -58,7 +58,7 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
 
     // Converting the Altitude Profile values into a vector:
     //if(std::find(garbage.begin(),garbage.end(),"Altitudes (m)")!=garbage.end()){
-    if(garbage.find("Altitudes (m)")!=-1){
+    if(garbage.find("Altitudes")!=-1){
       Hm = String2Vector<float>(garbage.substr(idx+1,garbage.length())); //(value.back());
       continue;
     }
