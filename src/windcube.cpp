@@ -24,6 +24,8 @@ std::vector<T> String2Vector(std::string VARIN){
 }
 // ============= End of Template Function String2Vector ========================
 
+
+
 // *****************************************************************************
 // Template SUBROUTINE to read V2 Lidar File types: .sta, .rtd
 template void ReadWindCubeLidar(std::string, V2LidarRTD &);
@@ -35,14 +37,16 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
   int NHead = -99;
   int NVAR_ALT = 0;
   bool RTDTYPE = false, STATYPE = false;
+  bool V1RTDTYPE = false, V1STATYPE = false;
   std::vector<std::string> list, value;
   std::string garbage;
   std::string header;
   std::vector<float> Hm;
+  std::string IDsystem;
 
   // Open File to read V2 Lidar data files:
   std::fstream in;
-  in.open(FileName.c_str(),std::ios::in);
+  in.open(FileName.c_str(),std::ios::in|std::ios::binary);
   if(!in){
     std::cout<<"ERROR: File cannot be open!"<<std::endl;
     return;
@@ -62,11 +66,18 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
       Hm = String2Vector<float>(garbage.substr(idx+1,garbage.length())); //(value.back());
       continue;
     }
+    // Checking the Lidar version:
+    if(garbage.find("ID System")!=-1){
+      //strcpy(IDsystem,garbage.substr(idx+1,garbage.length()).c_str());
+      IDsystem = garbage.substr(idx+1,garbage.length());
+    }
     
     list.push_back(garbage.substr(0,idx));
     value.push_back(garbage.substr(idx+1,garbage.length()));
       
   }
+
+  
   const size_t Nalt = Hm.size();
   // Finish to read the Headers.
   
@@ -90,11 +101,14 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
   int wiper; //char wiper;
   int j=0;
 
-  RTDTYPE = std::is_same<V2Lidar,V2LidarRTD>::value;
-  STATYPE = std::is_same<V2Lidar,V2LidarSTA>::value;
-
-  if(RTDTYPE) NVAR_ALT = 8;
+  RTDTYPE = std::is_same<V2Lidar,V2LidarRTD>::value && !IDsystem.compare(0,6,"WLS866");
+  STATYPE = std::is_same<V2Lidar,V2LidarSTA>::value && !IDsystem.compare(0,6,"WLS866");
+  V1RTDTYPE = std::is_same<V2Lidar,V2LidarRTD>::value && !IDsystem.compare(0,4,"WLS7");
+  V1STATYPE = std::is_same<V2Lidar,V2LidarSTA>::value && !IDsystem.compare(0,4,"WLS7");
+  
+  if(RTDTYPE || V1RTDTYPE) NVAR_ALT = 8;
   if(STATYPE) NVAR_ALT = 11;
+  if(V1STATYPE) NVAR_ALT = 18;
   
   // Starting to read Time- and Altitude-dependent variables:
   while(!in.eof()){
@@ -103,29 +117,44 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
     // Casting stream into auxiliary variables:
     if(RTDTYPE)
       ss>>date>>hour>>pos>>T>>wiper>>Euler[0]>>Euler[1]>>Euler[2];
-    else if(STATYPE)
-      ss>>date>>hour>>T>>temp>>press>>rh>>wiper; //>>pos;
-    else{
-      std::cout<<"ERROR: unknow LIDAR variable type passed to Template!";
+    if(V1RTDTYPE){
+      //ss>>date>>hour>>pos>>T>>wiper;
+      std::cout<<"ERROR: RTD version 1 LIDAR not yet supported!"<<std::endl;
       KK = {};
       return;
     }
-    // Assigning auxiliary variables into vectors:
+    else if(STATYPE)
+      ss>>date>>hour>>T>>temp>>press>>rh>>wiper; //>>pos;
+    else if(V1STATYPE)
+      ss>>date>>hour>>wiper>>T;
+    else{
+      std::cout<<"ERROR: unknow LIDAR variable type passed to Template!"<<std::endl;
+      KK = {};
+      return;
+    }
+    // Assigning common auxiliary variables into vectors:
     Datum.push_back(date);
     Uhrzeit.push_back(hour);
-    Position.push_back(std::strcmp(pos,"V")?atof(pos):-1);
     Temperature.push_back(T);
+    Nwiper.push_back(wiper);    // Number of Wiper for STA and RTD
+    // Assigning File-type specific variables: 
     if(RTDTYPE){
+      Position.push_back(std::strcmp(pos,"V")?atof(pos):-1);
       Alpha.push_back(Euler[0]);  // for STA is External Temperature [C]
       Beta.push_back(Euler[1]);   // for STA is External Pressure [hPa]
       Gamma.push_back(Euler[2]);  // for STA is External RH [%]
     }
+    if(V1RTDTYPE)
+      Position.push_back(std::strcmp(pos,"V")?atof(pos):-1);
+    
     if(STATYPE){
       Temp.push_back(atof(temp));
       Press.push_back(atof(press));
       RH.push_back(atof(rh));
     }
-    Nwiper.push_back(wiper);    // Number of Wiper for STA and RTD
+    if(V1STATYPE){
+    }
+  
     
     // Reading set of eight-columns for every altitude:
     std::array<std::vector<float>, N_ALTITUDE> AltWind;
@@ -142,11 +171,12 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
   }  // end loop over Time stamps (in File)
 
   // This works only if V2LidarRTD and V2LidarSTA have the same number and type members!
-  if(RTDTYPE)
-    KK = {list,value,Datum,Uhrzeit,Hm,WIND_DATA,Position,Temperature,Alpha,Beta,Gamma,Nwiper};
+  if(RTDTYPE || V1RTDTYPE)
+    KK = {IDsystem,list,value,Datum,Uhrzeit,Hm,WIND_DATA,Position,Temperature,Alpha,Beta,Gamma,Nwiper};
   if(STATYPE)
-    KK = {list,value,Datum,Uhrzeit,Hm,WIND_DATA,Temperature,Temp,Press,RH,Nwiper};
- 
+    KK = {IDsystem,list,value,Datum,Uhrzeit,Hm,WIND_DATA,Temperature,Temp,Press,RH,Nwiper};
+  if(V1STATYPE)
+    KK = {IDsystem,list,value,Datum,Uhrzeit,Hm,WIND_DATA,Temperature,Temp,Press,RH,Nwiper};
 }
 // ================ END OF V2 LIDAR READING SUBROUTINE ===============================
 
@@ -288,6 +318,7 @@ void PrintV2Lidar(std::string FileName,V2Lidar &KK){
   std::vector<std::string> Datum = KK.Datum;
   std::vector<std::array<std::vector<float>, N_ALTITUDE>> WIND_DATA = KK.WIND_DATA;
   std::cout<<FileName<<std::endl;
+  std::cout<<"Data type and version:"<<KK.IDSystem<<std::endl;
   for(int j=0; j<KK.HeaderItem.size(); ++j)
     std::cout<<j<<")"<<KK.HeaderItem.at(j)<<"--"<<KK.HeaderValue.at(j)<<std::endl;
   
@@ -312,3 +343,10 @@ void PrintV2Lidar(std::string FileName,V2Lidar &KK){
 
 // ______________________________________________-
 // End of Library.
+
+
+//  std::vector<std::string>::iterator ii;
+//  ii = std::find(list.begin(),list.end(),"ID System");
+//  int aa = std::distance(list.begin(),ii);
+//  std::cout<<"ID System is in: "<<value.at(aa)<<std::endl;
+  

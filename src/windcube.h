@@ -10,11 +10,12 @@
 #include<iterator>
 #include<algorithm>
 
-#define N_ALTITUDE 12   // Maximum number of altitude levels
+#define N_ALTITUDE 18   // Maximum number of altitude levels
 
 // ----------------------------------------------------------------
 // Struct variable for the V2 Lidar RTD formats (.rtd and .stdrtd)
 struct V2LidarRTD {
+  std::string IDSystem;
   std::vector<std::string> HeaderItem;
   std::vector<std::string> HeaderValue;
   std::vector<std::string> Datum;
@@ -32,6 +33,7 @@ struct V2LidarRTD {
 // ----------------------------------------------------------------
 // Struct variable for the V2 Lidar STA formats (.sta and .stdsta)
 struct V2LidarSTA {
+  std::string IDSystem;
   std::vector<std::string> HeaderItem;
   std::vector<std::string> HeaderValue;
   std::vector<std::string> Datum;

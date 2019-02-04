@@ -33,6 +33,7 @@ main(int argc, char *argv[]){
     ReadWindCubeLidar<V2LidarSTA>(fname, STA);
     PrintV2Lidar<V2LidarSTA>(fname, STA);
     std::cout<<"STA Mudou?"<<STA.WIND_DATA.size()<<std::endl;
+    //std::cout<<find(STA.HeaderItem.begin(),STA.HeaderItem.end(),"ID System")<<std::endl;
   }
 
   if(!strcmp(auxstr.c_str(), ".rtd")){
@@ -52,7 +53,55 @@ main(int argc, char *argv[]){
     std::cout<<"GYRO size: "<<GYRO.Datum.size()<<std::endl;
     for(int k=0;k<7;++k) std::cout<<GYRO.Datum[k]<<" "<<GYRO.Uhrzeit[k]<<" "<<GYRO.Pitch[k]<<" "<<GYRO.Roll[k]<<" "<<GYRO.Yaw[k]<<std::endl;
   }
-    
+
+  const char *Allfields[] = {"HEADER",    // 0
+			  "TIME",
+			  "HEIGHT",
+			  "ALPHA",
+			  "BETA",
+			  "GAMMA",     // 5
+			  "POS",
+			  "IN_TEMP",
+			  "WIND_DIRECTION",
+			  "WIND_HORIZONTAL",
+			  "XYZ_WIND_VECTOR",      // 10
+			  "WIND_RADIAL_VEL",
+			  "WIND_RADIAL_STAT",
+			  "CNR"
+  };      
+  int  NTotalFields = sizeof(Allfields)/sizeof(Allfields[0]);
+
+  std::vector<int> STAfields = {1,2,13};
+  const char *fields[3];
+  
+  for(int kk=0; kk<3; kk++){
+    fields[kk] = Allfields[STAfields.at(kk)];
+    std::cout<<"Wanted: "<<fields[kk]<<" -> ";
+    switch(STAfields.at(kk)){
+    case 0:
+      std::cout<<"Field: "<<Allfields[0]<<std::endl;
+      break;
+    case 1:
+      std::cout<<"Field: "<<Allfields[1]<<std::endl;
+      break;
+    case 2:
+      std::cout<<"Field: "<<Allfields[2]<<std::endl;
+      break;
+    case 3:
+      std::cout<<"Field: "<<Allfields[3]<<std::endl;
+      break;
+    case 4:
+      std::cout<<"Field: "<<Allfields[4]<<std::endl;
+      break;
+    case 13:
+      std::cout<<"Field: "<<Allfields[13]<<std::endl;
+      break;
+    default:
+      std::cout<<"ERROR field"<<std::endl;
+      break;
+    }
+  }
+  
 }   // end of program.
 
   // std::vector<float> V2LidarSTA::*p;
