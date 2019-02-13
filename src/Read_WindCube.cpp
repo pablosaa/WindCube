@@ -432,7 +432,7 @@ mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
   mwSize Ndat = G.Datum.size();
   double Datum[Ndat][6];
 
-  const char *FieldsIN[] = {"TIME","PITCH","ROLL","YAW","COOR","VEL","SBGACCU","GPSACCU","GPSTIME","NSAT"};
+  const char *FieldsIN[] = {"TIME","PITCH","ROLL","YAW","GPSHEADING","COOR","VEL","SBGACCU","GPSACCU","GPSTIME","NSAT"};
   mwSize NFields = sizeof(FieldsIN)/sizeof(FieldsIN[0]);
   
   OutVar = mxCreateStructMatrix(1,1,NFields,FieldsIN);
@@ -443,6 +443,7 @@ mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
   mxArray *PITCH = mxCreateNumericMatrix(Ndat,1,mxDOUBLE_CLASS, mxREAL);
   mxArray *ROLL  = mxCreateNumericMatrix(Ndat,1,mxDOUBLE_CLASS, mxREAL);
   mxArray *YAW   = mxCreateNumericMatrix(Ndat,1,mxDOUBLE_CLASS, mxREAL);
+  mxArray *GPSHEAD = mxCreateNumericMatrix(Ndat,1,mxDOUBLE_CLASS, mxREAL);
   mxArray *COOR  = mxCreateNumericMatrix(Ndat,3,mxDOUBLE_CLASS, mxREAL);
   mxArray *VEL   = mxCreateNumericMatrix(Ndat,3,mxDOUBLE_CLASS, mxREAL);
   mxArray *SBGAC = mxCreateNumericMatrix(Ndat,3,mxDOUBLE_CLASS, mxREAL);
@@ -458,6 +459,7 @@ mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
     *(mxGetPr(ROLL) +i) = (double) G.Roll[i];
     *(mxGetPr(YAW)  +i) = (double) G.Yaw[i];
     *(mxGetPr(NSAT) +i) = (double) G.NSat[i];
+    *(mxGetPr(GPSHEAD) + i ) = (double) G.GPS_heading[i];
     
     for(int j=0; j<7; ++j){
       if(j<3){
@@ -474,12 +476,13 @@ mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
   mxSetFieldByNumber(OutVar,0,1,PITCH);
   mxSetFieldByNumber(OutVar,0,2,ROLL);
   mxSetFieldByNumber(OutVar,0,3,YAW);
-  mxSetFieldByNumber(OutVar,0,4,COOR);
-  mxSetFieldByNumber(OutVar,0,5,VEL);
-  mxSetFieldByNumber(OutVar,0,6,SBGAC);
-  mxSetFieldByNumber(OutVar,0,7,GPSAC);
-  mxSetFieldByNumber(OutVar,0,8,GPSTI);
-  mxSetFieldByNumber(OutVar,0,9,NSAT);
+  mxSetFieldByNumber(OutVar,0,4,GPSHEAD);
+  mxSetFieldByNumber(OutVar,0,5,COOR);
+  mxSetFieldByNumber(OutVar,0,6,VEL);
+  mxSetFieldByNumber(OutVar,0,7,SBGAC);
+  mxSetFieldByNumber(OutVar,0,8,GPSAC);
+  mxSetFieldByNumber(OutVar,0,9,GPSTI);
+  mxSetFieldByNumber(OutVar,0,10,NSAT);
   return(OutVar);
 }
 // ========= End of Function to assign Gyro data struct ======================
