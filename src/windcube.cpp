@@ -235,7 +235,7 @@ void ReadWindCubeGyro(std::string FileName, V2Gyro &KK){
   char date[10];
   char hour[12];
   //std::vector<float> tmp;
-  int Treset;
+  long int Treset;
   float Pitch, Roll, Yaw;
   
   // Open File to read V2 Lidar GYRO data files:
@@ -250,6 +250,8 @@ void ReadWindCubeGyro(std::string FileName, V2Gyro &KK){
 
   while(!in.eof()){
     std::getline(in,garbage);
+    // checking that got a line with at least 180 characters:
+    if(garbage.length()<180) continue;
     std::stringstream ss(garbage);
     // Casting stream into auxiliary variables:
     ss>>date>>hour>>Treset>>Pitch>>Roll>>Yaw;
@@ -261,7 +263,7 @@ void ReadWindCubeGyro(std::string FileName, V2Gyro &KK){
     KK.Pitch.push_back(Pitch);
     KK.Roll.push_back(Roll);
     KK.Yaw.push_back(Yaw);
-    
+
     std::istream_iterator<float> ii(ss);
     KK.GPS_heading.push_back(*ii++);
     int i;
