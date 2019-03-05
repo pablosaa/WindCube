@@ -158,17 +158,17 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
     
     // Reading set of eight-columns for every altitude:
     std::array<std::vector<float>, N_ALTITUDE> AltWind;
-    std::istream_iterator<float> ii(ss);
+    // PSG: std::istream_iterator<float> ii(ss);
+    std::istream_iterator<std::string> ii(ss);
     for(int i=0;i<Nalt;++i){
       std::vector<float> TMP;
-      for(int j=0; j<NVAR_ALT; ++j) TMP.push_back(*ii++);
+      for(int j=0; j<NVAR_ALT; ++j) TMP.push_back(atof((*ii++).c_str()));
 
       AltWind.at(i) = TMP;
     }
     WIND_DATA.push_back(AltWind);
     
-  
-  }  // end loop over Time stamps (in File)
+  }  // end loop over Time stamps (in File) [while(!in.eof())...]
 
   // This works only if V2LidarRTD and V2LidarSTA have the same number and type members!
   if(RTDTYPE || V1RTDTYPE)
@@ -264,30 +264,30 @@ void ReadWindCubeGyro(std::string FileName, V2Gyro &KK){
     KK.Roll.push_back(Roll);
     KK.Yaw.push_back(Yaw);
 
-    std::istream_iterator<float> ii(ss);
-    KK.GPS_heading.push_back(*ii++);
+    std::istream_iterator<std::string> ii(ss);
+    KK.GPS_heading.push_back(atof((*ii++).c_str()));
     int i;
     std::array<float,3> tmp;
-    for(i=0;i<3;++i) tmp.at(i) = (*ii++);
+    for(i=0;i<3;++i) tmp.at(i) = (atof((*ii++).c_str()));
     KK.SBG_LLA.push_back(tmp);
 
-    for(int i=0;i<3;++i) tmp.at(i) = (*ii++);
+    for(int i=0;i<3;++i) tmp.at(i) = (atof((*ii++).c_str()));
     KK.SBG_Vxyz.push_back(tmp);
     
-    KK.Temperature.push_back(*ii++);
-    KK.Status.push_back(*ii++);
+    KK.Temperature.push_back(atof((*ii++).c_str()));
+    KK.Status.push_back(atof((*ii++).c_str()));
 
     std::array<float,5> tmp5;
-    for(int i=0;i<5;++i) tmp5.at(i) = (*ii++);
+    for(int i=0;i<5;++i) tmp5.at(i) = (atof((*ii++).c_str()));
     KK.GPS_Accu.push_back(tmp5);
     
-    KK.NSat.push_back(*ii++);
+    KK.NSat.push_back(atof((*ii++).c_str()));
 
-    for(int i=0;i<3;++i) tmp.at(i) = (*ii++);
+    for(int i=0;i<3;++i) tmp.at(i) = (atof((*ii++).c_str()));
     KK.SBG_Accu.push_back(tmp);
 
     std::array<float,7> tmp7;
-    for(int i=0;i<7;++i) tmp7.at(i) = (*ii++);
+    for(int i=0;i<7;++i) tmp7.at(i) = (atof((*ii++).c_str()));
     KK.GPS_Time.push_back(tmp7);
     
   }  // end of while !EOF
@@ -301,10 +301,10 @@ void ReadWindCubeGyro(std::string FileName, V2Gyro &KK){
 // SUBROUTINE to show the GNU Public Lincense notice:
 //
 void ShowGNUPL(){
-  std::cout<<"'WindCubMEX Library'  Copyright (C) 2018  Pablo Saavedra G."<<std::endl;
-  std::cout<<"This program comes with ABSOLUTELY NO WARRANTY; for details see GNUPLv3 `LICENCE'."<<std::endl;
-  std::cout<<"This is free software, and you are welcome to redistribute it"<<std::endl;
-  std::cout<<"under certain conditions; see GNUPLv3 `LICENCE' or <http://www.gnu.org/licenses/> for details.\n"<<std::endl;
+  std::cout<<"'WindCube Library'  Copyright (C) 2018  Pablo Saavedra G."<<std::endl;
+  std::cout<<"This program comes with ABSOLUTELY NO WARRANTY; as GNU software."<<std::endl;
+  std::cout<<"Details on using, changing or distributing, see GNUPLv3 `LICENCE' conditions,"<<std::endl;
+  std::cout<<"or at <http://www.gnu.org/licenses/> \n"<<std::endl;
   return;
 }
 // ============= End of GNU Showing Licence =====================================
