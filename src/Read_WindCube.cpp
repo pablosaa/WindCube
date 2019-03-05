@@ -111,7 +111,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
     case 1:
     case 2:
       ReadWindCubeLidar<V2LidarSTA>(fname, STA);
-      PrintV2Lidar<V2LidarSTA>(fname, STA);
+      //PrintV2Lidar<V2LidarSTA>(fname, STA);
       if(MULTIFILES)
 	mxSetCell(plhs[0],i,VARLIDAR_MATLAB_OUT<V2LidarSTA>(STA));
       else
@@ -120,7 +120,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
     case 3:
     case 4:
       ReadWindCubeLidar<V2LidarRTD>(fname, RTD);
-      PrintV2Lidar<V2LidarRTD>(fname, RTD);
+      //PrintV2Lidar<V2LidarRTD>(fname, RTD);
       if(MULTIFILES)
 	mxSetCell(plhs[0],i,VARLIDAR_MATLAB_OUT<V2LidarRTD>(RTD));
       else
@@ -220,16 +220,16 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   V2 = !T.IDSystem.compare(0,6,"WLS866");   // true for Lidar Version 2
   V2 = T.IDSystem.compare(0,4,"WLS7");      // false for Lidar Version 1
 
-  cout<<"Is version V2?"<<V2<<endl;
   //   function<vector<float>(V2LidarSTA&)> col1 = &V2LidarSTA::Vbatt;
-
+  cout<<"H and P defined!"<<endl;
   // Converting Date and Hour from string to numeric array:
   ConvertWindCube_Date(T.Datum,T.Uhrzeit,Datum);
+  cout<<"time converted!"<<endl;
   // Common variables:
   mxArray *DATE = mxCreateNumericMatrix(Ndat,6,mxDOUBLE_CLASS, mxREAL);
   mxArray *ALTI = mxCreateNumericMatrix(Nalt,1,mxDOUBLE_CLASS, mxREAL);
   mxArray *HEADER; //= mxCreateCellMatrix(mwSize m, mwSize n);
-
+  cout<<"3 mxArrays created!"<<endl;
   // temporal index for matlabt structure string names:
   if(is_same<V2Lidar,V2LidarRTD>::value && V2)
     idxField = {0,1,2,3,4,5,6,7,12,13,17,19,20,21};
@@ -277,7 +277,7 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
   // from Field number 3 are filled in the following loop:
   for(int k=3; k<NFields; ++k){
-    mexPrintf("assigning WIND array for %s",FieldsIN[k]);
+    //mexPrintf("assigning WIND array for %s",FieldsIN[k]);
     mxArray *var = mxCreateNumericMatrix(Ndat,1,mxDOUBLE_CLASS, mxREAL);
 
     for(int i=0; i<Ndat; ++i){

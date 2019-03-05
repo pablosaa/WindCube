@@ -117,7 +117,7 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
     // Casting stream into auxiliary variables:
     if(RTDTYPE)
       ss>>date>>hour>>pos>>T>>wiper>>Euler[0]>>Euler[1]>>Euler[2];
-    if(V1RTDTYPE){
+    else if(V1RTDTYPE){
       //ss>>date>>hour>>pos>>T>>wiper;
       std::cout<<"ERROR: RTD version 1 LIDAR not yet supported!"<<std::endl;
       KK = {};
@@ -209,17 +209,17 @@ unsigned int GetExtensionItem(std::string fname){
 // ************************************************************************
 // Subroutine to convert from Date and Hour from string to array double:
 void ConvertWindCube_Date(std::vector<std::string> &inDate, std::vector<std::string> &inHour,double outDate[][6]){
-
+  std::cout<<"inside converting date "<<inHour[0].size()<<" "<<inHour[0]<<std::endl;
   for(int i=0;i<inDate.size(); ++i){
     outDate[i][0] = atof(inDate[i].substr(0,4).c_str());
     outDate[i][1] = atof(inDate[i].substr(5,2).c_str());
     outDate[i][2] = atof(inDate[i].substr(8,2).c_str());
     outDate[i][3] = atof(inHour[i].substr(0,2).c_str());
     outDate[i][4] = atof(inHour[i].substr(3,2).c_str());
-    if(inHour[i].size()==8)   // case of .rtd files:
+    if(inHour[i].size()==8)   // case of .sta files:
       outDate[i][5] = atof(inHour[i].substr(6,2).c_str());
-    if(inHour[i].size()>8)    // caase of .gyro files:
-      outDate[i][5] = atof(inHour[i].substr(6,10).c_str());
+    if(inHour[i].size()==11)  // case of .rtd or gyro files
+      outDate[i][5] = atof(inHour[i].substr(6,5).c_str());
   }
 }
 // =========== End of subroutine convert Date string to array ==============
