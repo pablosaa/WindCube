@@ -221,15 +221,15 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   V2 = T.IDSystem.compare(0,4,"WLS7");      // false for Lidar Version 1
 
   //   function<vector<float>(V2LidarSTA&)> col1 = &V2LidarSTA::Vbatt;
-  cout<<"H and P defined!"<<endl;
+
   // Converting Date and Hour from string to numeric array:
   ConvertWindCube_Date(T.Datum,T.Uhrzeit,Datum);
-  cout<<"time converted!"<<endl;
+
   // Common variables:
   mxArray *DATE = mxCreateNumericMatrix(Ndat,6,mxDOUBLE_CLASS, mxREAL);
   mxArray *ALTI = mxCreateNumericMatrix(Nalt,1,mxDOUBLE_CLASS, mxREAL);
   mxArray *HEADER; //= mxCreateCellMatrix(mwSize m, mwSize n);
-  cout<<"3 mxArrays created!"<<endl;
+
   // temporal index for matlabt structure string names:
   if(is_same<V2Lidar,V2LidarRTD>::value && V2)
     idxField = {0,1,2,3,4,5,6,7,12,13,17,19,20,21};

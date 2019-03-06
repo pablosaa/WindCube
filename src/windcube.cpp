@@ -158,8 +158,8 @@ void ReadWindCubeLidar(std::string FileName, V2Lidar &KK){
     
     // Reading set of eight-columns for every altitude:
     std::array<std::vector<float>, N_ALTITUDE> AltWind;
-    // PSG: std::istream_iterator<float> ii(ss);
     std::istream_iterator<std::string> ii(ss);
+
     for(int i=0;i<Nalt;++i){
       std::vector<float> TMP;
       for(int j=0; j<NVAR_ALT; ++j) TMP.push_back(atof((*ii++).c_str()));
@@ -211,15 +211,33 @@ unsigned int GetExtensionItem(std::string fname){
 void ConvertWindCube_Date(std::vector<std::string> &inDate, std::vector<std::string> &inHour,double outDate[][6]){
   std::cout<<"inside converting date "<<inHour[0].size()<<" "<<inHour[0]<<std::endl;
   for(int i=0;i<inDate.size(); ++i){
-    outDate[i][0] = atof(inDate[i].substr(0,4).c_str());
-    outDate[i][1] = atof(inDate[i].substr(5,2).c_str());
-    outDate[i][2] = atof(inDate[i].substr(8,2).c_str());
-    outDate[i][3] = atof(inHour[i].substr(0,2).c_str());
-    outDate[i][4] = atof(inHour[i].substr(3,2).c_str());
-    if(inHour[i].size()==8)   // case of .sta files:
-      outDate[i][5] = atof(inHour[i].substr(6,2).c_str());
-    if(inHour[i].size()==11)  // case of .rtd or gyro files
-      outDate[i][5] = atof(inHour[i].substr(6,5).c_str());
+
+    std::string d = inDate[i];
+    std::string h = inHour[i];
+    std::string::size_type n;
+    bool YrLast = false;      // false := YEAR/MONTH/DAY. true := DAY/MONTH/YEAR format
+
+    // Checking whether Date is longer than 10 characters:
+    if(d.size()>10) d = d.substr(d.size()-10);
+
+    for (int j=0, k=2; j<3; j++, k--){
+      // For Hour:
+      n = h.find_last_of(":");
+      if(j==2 && n!=std::string::npos)
+	std::cout<<"ERROR!! hour: "<<inDate[i]<<"-"<<inHour[i]<<std::endl;
+      outDate[i][k+3] = atof(h.substr(n+1).c_str());
+      h = h.substr(0,n); //n+1);
+
+      // For Date:
+      n = d.find_last_of("/");
+      if(j==2 && n!=std::string::npos)
+	std::cout<<"ERROR!! hour: "<<inDate[i]<<"-"<<inHour[i]<<std::endl;
+
+      if(d.substr(n+1).size()==4 && j==0) YrLast = true;
+      outDate[i][YrLast?j:k] = atof(d.substr(n+1).c_str());
+      d = d.substr(0,n);
+    }
+
   }
 }
 // =========== End of subroutine convert Date string to array ==============
