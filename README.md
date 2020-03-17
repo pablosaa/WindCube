@@ -58,4 +58,4 @@ Geophysical Institute
 University of Bergen, 
 Norway
 
-SEE LICENCE.TXT
+See LICENCE
