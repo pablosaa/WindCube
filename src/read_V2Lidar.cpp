@@ -15,11 +15,6 @@ main(int argc, char *argv[]){
   std::string fname = argv[1];
   std::cout<<fname<<std::endl;
   
-  
-  V2LidarSTA STA;
-  V2LidarRTD RTD;
-  V2Gyro GYRO;
-
   // trying extension support:
   unsigned int TT = GetExtensionItem(fname);
   std::cout<<"Extension detected: "<<TT<<std::endl;
@@ -27,9 +22,11 @@ main(int argc, char *argv[]){
   // Figuring out which kind of file is the input:
   int idx = fname.find(".");
   std::string auxstr = fname.substr(idx,fname.length());
+
+  ShowGNUPL();
   
   if(!strcmp(auxstr.c_str(), ".sta")){
-    //typename std::conditional<true, V2LidarSTA, V2LidarRTD>::type KK;
+    V2LidarSTA STA;
     ReadWindCubeLidar<V2LidarSTA>(fname, STA);
     PrintV2Lidar<V2LidarSTA>(fname, STA);
     std::cout<<"STA Mudou?"<<STA.WIND_DATA.size()<<std::endl;
@@ -37,21 +34,23 @@ main(int argc, char *argv[]){
   }
 
   if(!strcmp(auxstr.c_str(), ".rtd")){
+    V2LidarRTD RTD;
     //typename std::conditional<false, V2LidarSTA, V2LidarRTD>::type KK;
     ReadWindCubeLidar<V2LidarRTD>(fname, RTD);
     std::cout<<"RTD"<<std::endl;
-    PrintV2Lidar<V2LidarRTD>(fname,RTD);
-    double Datum[(int) RTD.Datum.size()][6];
+    PrintV2Lidar<V2LidarRTD>(fname, RTD);
+    double Datum[(int) RTD.Uhrzeit.size()][6];
 
-    ConvertWindCube_Date(RTD.Datum,RTD.Uhrzeit, Datum);
+    ConvertWindCube_Date(RTD.Uhrzeit, Datum);
     //std::cout<<std::is_object<RTD.RH>::value;
-    std::cout<<"RTD Mudou?"<<RTD.WIND_DATA[0][0].size()<<std::endl;
+    std::cout<<"RTD Mudou?"<<RTD.WIND_DATA.size()<<std::endl;
   }
 
   if(TT==5){
+    V2Gyro GYRO;
     ReadWindCubeGyro(fname,GYRO);
-    std::cout<<"GYRO size: "<<GYRO.Datum.size()<<std::endl;
-    for(int k=0;k<7;++k) std::cout<<GYRO.Datum[k]<<" "<<GYRO.Uhrzeit[k]<<" "<<GYRO.Pitch[k]<<" "<<GYRO.Roll[k]<<" "<<GYRO.Yaw[k]<<std::endl;
+    std::cout<<"GYRO size: "<<GYRO.Uhrzeit.size()<<std::endl;
+    for(int k=0;k<7;++k) std::cout<<GYRO.Uhrzeit[k].hour<<" "<<GYRO.Uhrzeit[k].min<<" "<<GYRO.Pitch[k]<<" "<<GYRO.Roll[k]<<" "<<GYRO.Yaw[k]<<std::endl;
   }
 
   const char *Allfields[] = {"HEADER",    // 0

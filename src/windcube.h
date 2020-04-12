@@ -9,8 +9,14 @@
 #include<array>
 #include<iterator>
 #include<algorithm>
+#include<cmath>
+
+
+typedef struct {int year, month, day, hour, min, sec; float msecs;} time_ms;
 
 #define N_ALTITUDE 18   // Maximum number of altitude levels
+#define PI 3.14159265
+
 
 // ----------------------------------------------------------------
 // Struct variable for the V2 Lidar RTD formats (.rtd and .stdrtd)
@@ -18,10 +24,9 @@ struct V2LidarRTD {
   std::string IDSystem;
   std::vector<std::string> HeaderItem;
   std::vector<std::string> HeaderValue;
-  std::vector<std::string> Datum;
-  std::vector<std::string> Uhrzeit;
+  std::vector<time_ms> Uhrzeit;
   std::vector<float> Height;
-  std::vector<std::array<std::vector<float>, N_ALTITUDE> > WIND_DATA;
+  std::vector<std::vector<float> > WIND_DATA;
   std::vector<float> Position;
   std::vector<float> Temperature;
   std::vector<float> Alpha;
@@ -36,10 +41,9 @@ struct V2LidarSTA {
   std::string IDSystem;
   std::vector<std::string> HeaderItem;
   std::vector<std::string> HeaderValue;
-  std::vector<std::string> Datum;
-  std::vector<std::string> Uhrzeit;
+  std::vector<time_ms> Uhrzeit;
   std::vector<float> Height;
-  std::vector<std::array<std::vector<float>, N_ALTITUDE> > WIND_DATA;  
+  std::vector<std::vector<float> > WIND_DATA;
   std::vector<float> Temperature;
   std::vector<float> ExtTemp;
   std::vector<float> Pressure;
@@ -51,8 +55,7 @@ struct V2LidarSTA {
 // --------------------------------------------------------------
 // Struct variable for the V2 Lidar Gyro data format (.gyro)
 struct V2Gyro {
-  std::vector<std::string> Datum;
-  std::vector<std::string> Uhrzeit;
+  std::vector<time_ms> Uhrzeit;
   std::vector<int> Treset;
   std::vector<float> Pitch;
   std::vector<float> Roll;
@@ -84,7 +87,7 @@ extern template void PrintV2Lidar(std::string, V2LidarRTD &);
 
 unsigned int GetExtensionItem(std::string);
 
-void ConvertWindCube_Date(std::vector<std::string> &, std::vector<std::string> &, double [][6]);
+void ConvertWindCube_Date(std::vector<time_ms> &, double [][6]);
 
 void ReadWindCubeGyro(std::string, V2Gyro &);
 

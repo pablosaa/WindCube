@@ -168,9 +168,9 @@ template<typename V2Lidar>
 mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
   mxArray *OutVar;
-  mwSize Ndat = T.Datum.size();
+  mwSize Ndat = T.Uhrzeit.size(); //T.Datum.size();
   mwSize Nalt = T.Height.size();
-  mwSize Nwin = T.WIND_DATA[0][0].size();
+  mwSize Nwin = T.WIND_DATA[0].size()/Nalt; //[0].size();
   cout<<"Number of Wind variables: "<<Nwin<<endl;
   mwSize dims[3] = {Ndat,Nalt,3};
   double Datum[Ndat][6];
@@ -193,8 +193,8 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 			     "HORIZONTAL_WIND_STD",     // 14			     
 			     "VERTICAL_WIND_SPEED",    // 15
 			     "VERTICAL_WIND_STD",    // 16
-			     "XYZ_WIND_VECTOR",      // 17
-			     "XYZ_WIND_STD",         // 18
+			     "UVW_WIND_VECTOR",      // 17
+			     "UVW_WIND_STD",         // 18
 			     "RADIAL_WIND_SPEED",    // 19
 			     "RADIAL_WIND_STAT",     // 20
 			     "CNR",    // 21
@@ -215,15 +215,15 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
   // checkeing whether Lidar variable is STA or RTD?
   bool ISRTD = is_same<V2Lidar,V2LidarRTD>::value;
-  bool V2;
+  bool V2, V1;
 
-  V2 = !T.IDSystem.compare(0,6,"WLS866");   // true for Lidar Version 2
-  V2 = T.IDSystem.compare(0,4,"WLS7");      // false for Lidar Version 1
+  V2 = T.IDSystem.compare(0,6,"WLS866");   // true for Lidar Version 2
+  V1 = T.IDSystem.compare(0,4,"WLS7");      // false for Lidar Version 1
 
   //   function<vector<float>(V2LidarSTA&)> col1 = &V2LidarSTA::Vbatt;
 
   // Converting Date and Hour from string to numeric array:
-  ConvertWindCube_Date(T.Datum,T.Uhrzeit,Datum);
+  ConvertWindCube_Date(T.Uhrzeit, Datum);
 
   // Common variables:
   mxArray *DATE = mxCreateNumericMatrix(Ndat,6,mxDOUBLE_CLASS, mxREAL);
@@ -231,6 +231,9 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
   mxArray *HEADER; //= mxCreateCellMatrix(mwSize m, mwSize n);
 
   // temporal index for matlabt structure string names:
+  if(is_same<V2Lidar,V2LidarRTD>::value && V1)
+    idxField = {0,1,2,6,7,12,13,17,19,20,21};
+  
   if(is_same<V2Lidar,V2LidarRTD>::value && V2)
     idxField = {0,1,2,3,4,5,6,7,12,13,17,19,20,21};
 
@@ -313,33 +316,32 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 	// Wind direction:
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var) + i + h*Ndat) = (double) T.WIND_DATA[i][h][4];
+	  *(mxGetPr(var) + i + h*Ndat) = (double) T.WIND_DATA[i][h*Nwin + 4];
 	break;
       case 13:
 	// Horizontal wind speed:
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
-	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?3:0];
+	for(int h=0, offset = ISRTD?3:0; h<Nalt; ++h)
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h*Nwin + offset];
 	break;
       case 14:
 	// STATS-Horizontal wind speed (spread, min, max):
 	if(i==0)  var = mxCreateNumericArray(3,dims,mxDOUBLE_CLASS, mxREAL);
-	
 	for(int h=0; h<Nalt; ++h)
 	  for(int l=0; l<3; ++l)
-	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][ISRTD?(l+5):(l+1)];
+	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][ISRTD?(h*Nwin + l+5):(h*Nwin+l+1)];
 	break;
       case 15:
 	// STA: Vertical wind velocity.
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][5];
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h*Nwin + 5];
 	break;
       case 16:
 	// STA: Vertical wind velocity statistics (Dispersion).
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][6];
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h*Nwin + 6];
 	break;
       case 17:
 	// STA_V1 & RTD_V2: XYZ wind speed
@@ -347,7 +349,7 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
 	for(int h=0; h<Nalt; ++h)
 	  for(int l=0; l<3; ++l)
-	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][ISRTD?(l+5):(2*l+5)];
+	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][ISRTD?(Nwin*h+l+5):(Nwin*h+2*l+5)];
 	break;
       case 18:
 	// STA_V1: XYZ statistics wind speed
@@ -355,27 +357,28 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 
 	for(int h=0; h<Nalt; ++h)
 	  for(int l=0; l<3; ++l)
-	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][(2*l+6)];
+	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h*Nwin + (2*l+6)];
 	break;
       case 19:
 	// RTD: Wind radial velocity
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][1];
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][1+h*Nwin];
 	break;
       case 20:
 	// RTD: Wind Statistics radial velocity
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][2];
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][2+h*Nwin];
 	break;
       case 21:
 	// STA (V1. V2) & RTD (V2): CNR
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
-	{int icol = V2?7:11;
-	
-	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][ISRTD?0:icol];
+	{
+	  int icol = V2?7:11;
+	  int offset = ISRTD?0:icol;
+	  for(int h=0; h<Nalt; ++h)
+	    *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h*Nwin + offset];
 	}
 	break;
       case 22:
@@ -385,7 +388,7 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 	{int icol = V2?0:3;
 	for(int h=0; h<Nalt; ++h)
 	  for(int l=0; l<icol; ++l)
-	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h][V2?8:(l+12)];
+	    *(mxGetPr(var)+i + h*Ndat + l*Ndat*Nalt) = (double) T.WIND_DATA[i][h*Nalt + V2?8:(l+12)];
 	}
 	break;
       case 23:
@@ -393,20 +396,20 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][V2?9:15];
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h*Nalt + V2?9:15];
 	break;
       case 24:
 	// STA (V1): Statistics Doppler spectra broad.
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][16];
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h*Nalt+16];
 	break;
       case 25:
 	// STA (V1,V2): Data availability.
 	if(i==0) var = mxCreateNumericMatrix(Ndat,Nalt,mxDOUBLE_CLASS, mxREAL);
 	for(int h=0; h<Nalt; ++h)
-	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h][V2?10:17];
+	  *(mxGetPr(var)+i + h*Ndat) = (double) T.WIND_DATA[i][h*Nalt+V2?10:17];
 	break;
       default:
 	cout<<"ERROR: assigning MATLAB structure variable!"<<endl;	
@@ -429,7 +432,7 @@ mxArray *VARLIDAR_MATLAB_OUT(V2Lidar &T){
 mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
 
   mxArray *OutVar;
-  mwSize Ndat = G.Datum.size();
+  mwSize Ndat = G.Uhrzeit.size();
   double Datum[Ndat][6];
 
   const char *FieldsIN[] = {"TIME","PITCH","ROLL","YAW","GPSHEADING","COOR","VEL","SBGACCU","GPSACCU","GPSTIME","NSAT"};
@@ -437,7 +440,8 @@ mxArray *VARGYRO_MATLAB_OUT(V2Gyro &G){
   
   OutVar = mxCreateStructMatrix(1,1,NFields,FieldsIN);
   
-  ConvertWindCube_Date(G.Datum,G.Uhrzeit,Datum);  
+  // OJO to implement!!
+  ConvertWindCube_Date(G.Uhrzeit, Datum);  
   // Common variables:
   mxArray *DATE = mxCreateNumericMatrix(Ndat,6,mxDOUBLE_CLASS, mxREAL);
   mxArray *PITCH = mxCreateNumericMatrix(Ndat,1,mxDOUBLE_CLASS, mxREAL);

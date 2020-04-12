@@ -16,7 +16,9 @@
 # SEE LICENCE.TXT
 # -------------------------------------------------------------------------
 
-HOME_PATH = $(CURDIR)
+# Base directory where repository is located:
+HOME_PATH:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+##HOME_PATH = $(CURDIR)
 SRC_PATH = $(HOME_PATH)/src
 LIB_PATH = $(HOME_PATH)/lib
 BIN_PATH = $(HOME_PATH)/bin
